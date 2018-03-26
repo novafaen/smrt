@@ -14,10 +14,10 @@ class SMRT(Flask):
     def __init__(self, *args, **kwargs):
         super(SMRT, self).__init__(*args, **kwargs)
 
-        self.app = None
-        self.ping = 'pong'
+        self._client = None
 
-        # scan for packages
+    def register_client(self, client):
+        self._client = client
 
     def version(self):
         body = {
@@ -26,8 +26,8 @@ class SMRT(Flask):
         }
 
         # add app version information
-        if self.app is not None:
-            app_version = self.app.version()
+        if self._client is not None:
+            app_version = self._client.version()
             body['app_version'] = app_version['app_version']
 
         return body

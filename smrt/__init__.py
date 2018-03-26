@@ -1,1 +1,1 @@
-from .smrt import app
+from .smrt import app as SMRT
