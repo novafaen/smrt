@@ -1,0 +1,1 @@
+from .smrt import app
