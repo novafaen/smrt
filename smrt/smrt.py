@@ -23,7 +23,7 @@ class SMRT(Flask):
         self._client = client
 
     @staticmethod
-    def create_error(self, code, description, message):
+    def create_error(code, description, message):
         body = {
             'code': code,
             'description': description,
@@ -58,6 +58,7 @@ class SMRT(Flask):
         if self._client is not None:
             app_status = self._client.status()
             body['status'] = app_status['status']
+            body['application'] = app_status['application']
 
         return body
 
