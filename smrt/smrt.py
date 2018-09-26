@@ -33,22 +33,10 @@ class SMRT(Flask):
         response.headers['Content-Type'] = 'application/se.novafaen.smrt.error.v1+json'
         return response
 
-    def version(self):
-        body = {
-            'smrt_version': '0.0.1',
-            'time': int(time.time())  # force integer, no need to have better resolution
-        }
-
-        # add app version information
-        if self._client is not None:
-            app_version = self._client.version()
-            body['app_version'] = app_version['app_version']
-            body['application'] = app_version['application']
-
-        return body
-
     def status(self):
         body = {
+            'smrt_version': '0.0.1',
+            'time': int(time.time()),  # force integer, no need to have better resolution
             'app_loaded': self._client is not None,
             'errors': self._errors,
             'warnings': self._warning,
@@ -57,7 +45,10 @@ class SMRT(Flask):
 
         if self._client is not None:
             app_status = self._client.status()
+
             body['status'] = app_status['status']
+            body['application'] = app_status['application']
+            body['app_version'] = app_status['app_version']
             body['application'] = app_status['application']
 
         return body
@@ -71,20 +62,12 @@ app = SMRT(__name__)
 def not_found(error):
     logging.debug('Received 404 error: ' + str(error))
     body = {
-        'code': 404,
-        'status': 'NotFound',
-        'message': 'Requested path %s does not exist.' % request.path
+        'code': 405,
+        'status': 'MethodNotAllowed',
+        'message': 'No method %s exist.' % request.path
     }
     response = make_response(jsonify(body), 404)
     response.headers['Content-Type'] = 'application/se.novafaen.smrt.error.v1+json'
-    return response
-
-
-@app.route('/version')
-def version():
-    body = app.version()
-    response = make_response(jsonify(body), 200)
-    response.headers['Content-Type'] = 'application/se.novafaen.smrt.version.v1+json'
     return response
 
 
