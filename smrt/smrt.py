@@ -35,21 +35,20 @@ class SMRT(Flask):
 
     def status(self):
         body = {
-            'smrt_version': '0.0.1',
+            'smrt': {
+                'smrt_version': '0.0.1',
+                'app_loaded': self._client is not None,
+            },
             'time': int(time.time()),  # force integer, no need to have better resolution
-            'app_loaded': self._client is not None,
-            'errors': self._errors,
-            'warnings': self._warning,
-            'bad_requests': self._bad_requests
+            'status': {
+                'errors': self._errors,
+                'warnings': self._warning,
+                'bad_requests': self._bad_requests
+            }
         }
 
         if self._client is not None:
-            app_status = self._client.status()
-
-            body['status'] = app_status['status']
-            body['application'] = app_status['application']
-            body['app_version'] = app_status['app_version']
-            body['application'] = app_status['application']
+            body['application'] = self._client.status()
 
         return body
 
