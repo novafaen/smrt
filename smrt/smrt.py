@@ -53,6 +53,12 @@ class SMRT(Flask):
         return body
 
 
+class SMRTApp:
+    @staticmethod
+    def status(self):
+        raise NotImplemented('Application is missing status implementation')
+
+
 # create app
 app = SMRT(__name__)
 
@@ -93,6 +99,6 @@ def all_exception_handler(error):
     body = {
         'code': 500,
         'status': 'Internal Server Error',
-        'message': 'An unexpected error has occurred, issue have been logged.'
+        'message': 'An unexpected error has occurred.'
     }
     return make_response(jsonify(body), 500)
