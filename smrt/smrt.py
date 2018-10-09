@@ -20,6 +20,9 @@ class SMRT(Flask):
         self._bad_requests = 0
 
     def register_client(self, client):
+        if not isinstance(client, SMRTApp):
+            raise NotImplementedError('Client registration failed, client does not implement SMRTApp interface')
+
         self._client = client
 
     @staticmethod
@@ -54,9 +57,12 @@ class SMRT(Flask):
 
 
 class SMRTApp:
-    @staticmethod
     def status(self):
         raise NotImplemented('Application is missing status implementation')
+
+    @staticmethod
+    def client_name():
+        raise NotImplemented('Application is missing client_name implementation')
 
 
 # create app
