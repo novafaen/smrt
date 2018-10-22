@@ -78,6 +78,13 @@ def status():
     return response
 
 
+@app.route('/test/error')
+@produces('application/se.novafaen.smrt.test_accept.v1+json')
+@consumes('application/se.novafaen.smrt.test_content_type.v1+json')
+def test():
+    raise RuntimeError('Should raise internal server error')
+
+
 @app.errorhandler(404)
 def not_found(error):
     logging.debug('Received 404 error: ' + str(error))
@@ -105,23 +112,29 @@ def all_exception_handler(error):
 
 @app.errorhandler(NotAcceptable)
 def handle_invalid_usage(error):
-    logging.debug('Not Acceptable, %s, Accept=%s', request.path, request.headers['Accept'])
+    accept_type = ''
+    if 'Accept' in request.headers:
+        accept_type = request.headers['Accept']
+    logging.debug('Not Acceptable, %s, Accept=%s', request.path, accept_type)
 
     body = {
         'code': 406,
         'status': 'Not Acceptable',
-        'message': 'Accept type is not served.'
+        'message': 'Accept type \'%s\' is not served.' % accept_type
     }
     return make_response(jsonify(body), 406)
 
 
 @app.errorhandler(UnsupportedMediaType)
 def handle_invalid_usage(error):
-    logging.debug('Unsupported Media Type, %s, Content-type=%s', request.path, request.headers['Content-Type'])
+    content_type = ''
+    if 'Content-Type' in request.headers:
+        content_type = request.headers['Content-Type']
+    logging.debug('Unsupported Media Type, %s, Content-type=%s', request.path, content_type)
 
     body = {
         'code': 415,
         'status': 'Unsupported Media Type',
-        'message': 'Content type cannot be handled.'
+        'message': 'Content type \'%s\' cannot be handled.' % content_type
     }
     return make_response(jsonify(body), 415)
