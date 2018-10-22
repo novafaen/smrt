@@ -11,7 +11,8 @@ setup(
     url='http://smrt.novafaen.se/',
     packages=['smrt'],
     install_requires=[
-        'flask'
+        'flask',
+        'flask-negotiate'
     ],
     test_suite='tests',
     tests_require=[

@@ -2,6 +2,7 @@ import logging
 import time
 
 from flask import Flask, request, make_response, jsonify
+from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
 
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -69,6 +70,14 @@ class SMRTApp:
 app = SMRT(__name__)
 
 
+@app.route('/status')
+@produces('application/se.novafaen.smrt.status.v1+json')
+def status():
+    body = app.status()
+    response = make_response(jsonify(body), 200)
+    return response
+
+
 @app.errorhandler(404)
 def not_found(error):
     logging.debug('Received 404 error: ' + str(error))
@@ -82,22 +91,6 @@ def not_found(error):
     return response
 
 
-@app.route('/status')
-def status():
-    body = app.status()
-    response = make_response(jsonify(body), 200)
-    response.headers['Content-Type'] = 'application/se.novafaen.smrt.status.v1+json'
-    return response
-
-
-@app.route('/register/<string:service>/<string:identifier>')
-def register(service, identifier):
-    logging.debug('received register request %s:%s', service, identifier)
-
-    response = make_response('', 204)
-    return response
-
-
 @app.errorhandler(Exception)
 def all_exception_handler(error):
     logging.critical(error, exc_info=True)
@@ -108,3 +101,27 @@ def all_exception_handler(error):
         'message': 'An unexpected error has occurred.'
     }
     return make_response(jsonify(body), 500)
+
+
+@app.errorhandler(NotAcceptable)
+def handle_invalid_usage(error):
+    logging.debug('Not Acceptable, %s, Accept=%s', request.path, request.headers['Accept'])
+
+    body = {
+        'code': 406,
+        'status': 'Not Acceptable',
+        'message': 'Accept type is not served.'
+    }
+    return make_response(jsonify(body), 406)
+
+
+@app.errorhandler(UnsupportedMediaType)
+def handle_invalid_usage(error):
+    logging.debug('Unsupported Media Type, %s, Content-type=%s', request.path, request.headers['Content-Type'])
+
+    body = {
+        'code': 415,
+        'status': 'Unsupported Media Type',
+        'message': 'Content type cannot be handled.'
+    }
+    return make_response(jsonify(body), 415)
