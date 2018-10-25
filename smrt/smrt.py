@@ -3,6 +3,7 @@ import time
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
+from werkzeug.exceptions import MethodNotAllowed
 
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -85,19 +86,6 @@ def test():
     raise RuntimeError('Should raise internal server error')
 
 
-@app.errorhandler(404)
-def not_found(error):
-    logging.debug('Received 404 error: ' + str(error))
-    body = {
-        'code': 405,
-        'status': 'MethodNotAllowed',
-        'message': 'No method %s exist.' % request.path
-    }
-    response = make_response(jsonify(body), 404)
-    response.headers['Content-Type'] = 'application/se.novafaen.smrt.error.v1+json'
-    return response
-
-
 @app.errorhandler(Exception)
 def all_exception_handler(error):
     logging.critical(error, exc_info=True)
@@ -138,3 +126,20 @@ def handle_invalid_usage(error):
         'message': 'Content type \'%s\' cannot be handled.' % content_type
     }
     return make_response(jsonify(body), 415)
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return handle_method_not_allowed(error)  # throw method not allowed for not found errors
+
+
+@app.errorhandler(MethodNotAllowed)
+def handle_method_not_allowed(error):
+    body = {
+        'code': 405,
+        'status': 'MethodNotAllowed',
+        'message': 'No method %s exist.' % request.path
+    }
+    response = make_response(jsonify(body), 404)
+    response.headers['Content-Type'] = 'application/se.novafaen.smrt.error.v1+json'
+    return response
