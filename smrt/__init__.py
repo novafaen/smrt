@@ -1,2 +1,2 @@
-from .smrt import app, SMRTApp
-from .smrt import request, make_response, jsonify, consumes, produces
+from .smrt import app, SMRTApp, smrt
+from .smrt import request, make_response, jsonify
