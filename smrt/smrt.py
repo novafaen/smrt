@@ -1,9 +1,9 @@
 import logging
 import time
+from functools import wraps
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
-from werkzeug.exceptions import MethodNotAllowed
 
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -16,10 +16,12 @@ class SMRT(Flask):
     def __init__(self, *args, **kwargs):
         super(SMRT, self).__init__(*args, **kwargs)
 
-        self._client = None
-        self._warning = 0
-        self._errors = 0
-        self._bad_requests = 0
+        self._client = None  # client app running on top of SMRT
+
+        self._requests_total = 0
+        self._requests_warning = 0
+        self._requests_error = 0
+        self._requests_bad = 0
 
     def register_client(self, client):
         if not isinstance(client, SMRTApp):
@@ -46,9 +48,10 @@ class SMRT(Flask):
             },
             'time': int(time.time()),  # force integer, no need to have better resolution
             'status': {
-                'errors': self._errors,
-                'warnings': self._warning,
-                'bad_requests': self._bad_requests
+                'amount_total': self._requests_total,
+                'amount_warning': self._requests_warning,
+                'amount_error': self._requests_error,
+                'amount_bad': self._requests_bad
             }
         }
 
@@ -71,17 +74,82 @@ class SMRTApp:
 app = SMRT(__name__)
 
 
-@app.route('/status')
-@produces('application/se.novafaen.smrt.status.v1+json')
+def smrt(route, **kwargs):
+    def decorated(fn):
+        smrt_produces = kwargs.get('produces', None)
+        if smrt_produces is not None:
+            del kwargs['produces']
+
+        smrt_consumes = kwargs.get('consumes', None)
+        if smrt_consumes is not None:
+            del kwargs['consumes']
+
+        @app.route(route, **kwargs)
+        @call_produces(smrt_produces)
+        @call_consumes(smrt_consumes)
+        @wraps(fn)
+        def wrapper(*wrapper_args, **wrapper_kwargs):
+            start = int(round(time.time() * 1000))
+
+            result = fn(*wrapper_args, **wrapper_kwargs)
+
+            end = int(round(time.time() * 1000))
+            logging.debug('call (%s) executed in %i ms', route, end - start)
+            return result
+
+        return wrapper
+    return decorated
+
+
+def call_produces(content_type):
+    def decorated(fn):
+        # if no content type is defined, just return
+        if content_type is None:
+            @wraps(fn)
+            def wrapper(*w_args, **w_kwargs):
+                return fn(*w_args, **w_kwargs)
+            return wrapper
+
+        # content type exist, wrap in produces and then return
+        @produces(content_type)
+        @wraps(fn)
+        def wrapper(*w_args, **w_kwargs):
+            return fn(*w_args, **w_kwargs)
+
+        return wrapper
+    return decorated
+
+
+def call_consumes(content_type):
+    def decorated(fn):
+        # if no content type is defined, just return
+        if content_type is None:
+            @wraps(fn)
+            def wrapper(*w_args, **w_kwargs):
+                return fn(*w_args, **w_kwargs)
+            return wrapper
+
+        # content type exist, wrap in produces and then return
+        @consumes(content_type)
+        @wraps(fn)
+        def wrapper(*w_args, **w_kwargs):
+            return fn(*w_args, **w_kwargs)
+
+        return wrapper
+    return decorated
+
+
+@smrt('/status',
+      produces='application/se.novafaen.smrt.status.v1+json')
 def status():
     body = app.status()
     response = make_response(jsonify(body), 200)
     return response
 
 
-@app.route('/test/error')
-@produces('application/se.novafaen.smrt.test_accept.v1+json')
-@consumes('application/se.novafaen.smrt.test_content_type.v1+json')
+@smrt('/test/error',
+      produces='application/se.novafaen.smrt.test_accept.v1+json',
+      consumes='application/se.novafaen.smrt.test_content_type.v1+json')
 def test():
     raise RuntimeError('Should raise internal server error')
 
@@ -130,11 +198,6 @@ def handle_invalid_usage(error):
 
 @app.errorhandler(404)
 def not_found(error):
-    return handle_method_not_allowed(error)  # throw method not allowed for not found errors
-
-
-@app.errorhandler(MethodNotAllowed)
-def handle_method_not_allowed(error):
     body = {
         'code': 405,
         'status': 'MethodNotAllowed',
