@@ -99,60 +99,54 @@ def smrt(route, **kwargs):
             del kwargs['consumes']
 
         @app.route(route, **kwargs)
-        @call_produces(smrt_produces)
-        @call_consumes(smrt_consumes)
+        @call_types(smrt_consumes, smrt_produces)
         @wraps(fn)
         def wrapper(*wrapper_args, **wrapper_kwargs):
-            app.increase_successful()
-
             start = int(round(time.time() * 1000))  # start timer
 
             result = fn(*wrapper_args, **wrapper_kwargs)
 
             end = int(round(time.time() * 1000))  # stop timer
+            logging.debug('[%s ms] %s executed', end - start, route)
 
-            logging.debug('[%s ms] %s executed', route, end - start)
+            app.increase_successful()
+
             return result
 
         return wrapper
     return decorated
 
 
-def call_produces(content_type):
+def call_types(in_type, out_type):
     def decorated(fn):
-        # if no content type is defined, just return
-        if content_type is None:
+        logging.debug('in_type=%s, out_type=%s', in_type, out_type)
+        if in_type is not None and out_type is None:
+            @consumes(in_type)
             @wraps(fn)
             def wrapper(*w_args, **w_kwargs):
                 return fn(*w_args, **w_kwargs)
             return wrapper
 
-        # content type exist, wrap in produces and then return
-        @produces(content_type)
-        @wraps(fn)
-        def wrapper(*w_args, **w_kwargs):
-            return fn(*w_args, **w_kwargs)
-
-        return wrapper
-    return decorated
-
-
-def call_consumes(content_type):
-    def decorated(fn):
-        # if no content type is defined, just return
-        if content_type is None:
+        if in_type is None and out_type is not None:
+            @produces(out_type)
             @wraps(fn)
             def wrapper(*w_args, **w_kwargs):
                 return fn(*w_args, **w_kwargs)
             return wrapper
 
-        # content type exist, wrap in produces and then return
-        @consumes(content_type)
+        if in_type is not None and out_type is not None:
+            @consumes(in_type)
+            @produces(out_type)
+            @wraps(fn)
+            def wrapper(*w_args, **w_kwargs):
+                return fn(*w_args, **w_kwargs)
+            return wrapper
+
         @wraps(fn)
         def wrapper(*w_args, **w_kwargs):
             return fn(*w_args, **w_kwargs)
-
         return wrapper
+
     return decorated
 
 
@@ -181,7 +175,7 @@ def all_exception_handler(error):
 
 
 @app.errorhandler(NotAcceptable)
-def handle_invalid_usage():
+def handle_invalid_usage(error):
     accept_type = ''
     if 'Accept' in request.headers and request.headers['Accept'] != '*/*':
         accept_type = request.headers['Accept']
@@ -193,7 +187,7 @@ def handle_invalid_usage():
 
 
 @app.errorhandler(UnsupportedMediaType)
-def handle_invalid_usage():
+def handle_invalid_usage(error):
     content_type = ''
     if 'Content-Type' in request.headers:
         content_type = request.headers['Content-Type']
@@ -205,7 +199,7 @@ def handle_invalid_usage():
 
 
 @app.errorhandler(404)
-def not_found():
+def not_found(error):
     return app.create_error(405,
                             'Method Not Allowed',
                             'No method \'%s\' exist.' % request.path,
