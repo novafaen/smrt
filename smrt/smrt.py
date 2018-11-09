@@ -4,6 +4,7 @@ from functools import wraps
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
+from werkzeug.exceptions import MethodNotAllowed
 
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -160,7 +161,8 @@ def status():
 
 @smrt('/test/error',
       produces='application/se.novafaen.smrt.test_accept.v1+json',
-      consumes='application/se.novafaen.smrt.test_content_type.v1+json')
+      consumes='application/se.novafaen.smrt.test_content_type.v1+json',
+      methods=['GET', 'PUT'])
 def test():
     raise RuntimeError('Should raise internal server error')
 
@@ -198,6 +200,7 @@ def handle_invalid_usage(error):
                             bad=True)
 
 
+@app.errorhandler(MethodNotAllowed)
 @app.errorhandler(404)
 def not_found(error):
     return app.create_error(405,
