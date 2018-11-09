@@ -19,6 +19,7 @@ class SMRT(Flask):
         self._client = None  # client app running on top of SMRT
 
         self._requests_total = 0
+        self._requests_successful = 0
         self._requests_warning = 0
         self._requests_error = 0
         self._requests_bad = 0
@@ -29,8 +30,20 @@ class SMRT(Flask):
 
         self._client = client
 
-    @staticmethod
-    def create_error(code, description, message):
+    def increase_successful(self):
+        self._requests_successful += 1
+        self._requests_total += 1
+
+    def create_error(self, code, description, message, warning=False, error=False, bad=False):
+        if warning:
+            self._requests_warning += 1
+        if error:
+            self._requests_error += 1
+        if bad:
+            self._requests_bad += 1
+
+        self._requests_total += 1
+
         body = {
             'code': code,
             'description': description,
@@ -46,12 +59,13 @@ class SMRT(Flask):
                 'smrt_version': '0.0.1',
                 'app_loaded': self._client is not None,
             },
-            'time': int(time.time()),  # force integer, no need to have better resolution
+            'server_time': int(time.time()),  # force integer, no need to have better resolution
             'status': {
-                'amount_total': self._requests_total,
+                'amount_successful': self._requests_successful,
                 'amount_warning': self._requests_warning,
                 'amount_error': self._requests_error,
-                'amount_bad': self._requests_bad
+                'amount_bad': self._requests_bad,
+                'amount_total': self._requests_total
             }
         }
 
@@ -89,12 +103,15 @@ def smrt(route, **kwargs):
         @call_consumes(smrt_consumes)
         @wraps(fn)
         def wrapper(*wrapper_args, **wrapper_kwargs):
-            start = int(round(time.time() * 1000))
+            app.increase_successful()
+
+            start = int(round(time.time() * 1000))  # start timer
 
             result = fn(*wrapper_args, **wrapper_kwargs)
 
-            end = int(round(time.time() * 1000))
-            logging.debug('call (%s) executed in %i ms', route, end - start)
+            end = int(round(time.time() * 1000))  # stop timer
+
+            logging.debug('[%s ms] %s executed', route, end - start)
             return result
 
         return wrapper
@@ -157,52 +174,39 @@ def test():
 @app.errorhandler(Exception)
 def all_exception_handler(error):
     logging.critical(error, exc_info=True)
-
-    body = {
-        'code': 500,
-        'status': 'Internal Server Error',
-        'message': 'An unexpected error has occurred.'
-    }
-    return make_response(jsonify(body), 500)
+    return app.create_error(500,
+                            'Internal Server Error',
+                            'An unexpected error has occurred.',
+                            error=True)
 
 
 @app.errorhandler(NotAcceptable)
-def handle_invalid_usage(error):
+def handle_invalid_usage():
     accept_type = ''
-    if 'Accept' in request.headers:
+    if 'Accept' in request.headers and request.headers['Accept'] != '*/*':
         accept_type = request.headers['Accept']
-    logging.debug('Not Acceptable, %s, Accept=%s', request.path, accept_type)
 
-    body = {
-        'code': 406,
-        'status': 'Not Acceptable',
-        'message': 'Accept type \'%s\' is not served.' % accept_type
-    }
-    return make_response(jsonify(body), 406)
+    return app.create_error(406,
+                            'Not Acceptable',
+                            'Accept type \'%s\' is not served by endpoint.' % accept_type,
+                            bad=True)
 
 
 @app.errorhandler(UnsupportedMediaType)
-def handle_invalid_usage(error):
+def handle_invalid_usage():
     content_type = ''
     if 'Content-Type' in request.headers:
         content_type = request.headers['Content-Type']
-    logging.debug('Unsupported Media Type, %s, Content-type=%s', request.path, content_type)
 
-    body = {
-        'code': 415,
-        'status': 'Unsupported Media Type',
-        'message': 'Content type \'%s\' cannot be handled.' % content_type
-    }
-    return make_response(jsonify(body), 415)
+    return app.create_error(415,
+                            'Unsupported Media Type',
+                            'Content type \'%s\' cannot be handled by endpoint.' % content_type,
+                            bad=True)
 
 
 @app.errorhandler(404)
-def not_found(error):
-    body = {
-        'code': 405,
-        'status': 'MethodNotAllowed',
-        'message': 'No method %s exist.' % request.path
-    }
-    response = make_response(jsonify(body), 404)
-    response.headers['Content-Type'] = 'application/se.novafaen.smrt.error.v1+json'
-    return response
+def not_found():
+    return app.create_error(405,
+                            'Method Not Allowed',
+                            'No method \'%s\' exist.' % request.path,
+                            bad=True)
