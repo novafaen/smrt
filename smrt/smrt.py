@@ -1,10 +1,14 @@
+import json
 import logging
 import time
+import os
 from functools import wraps
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
 from werkzeug.exceptions import MethodNotAllowed
+
+from smrt.broadcast import Broadcaster, Listener
 
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -77,6 +81,44 @@ class SMRT(Flask):
 
 
 class SMRTApp:
+    config = None
+    broadcaster = None
+    listener = None
+
+    def __init__(self):
+        config_filename = os.path.join(os.path.dirname(os.getcwd()), 'configuration.json')
+
+        if os.path.isfile(config_filename):
+            logging.info('configuration file found: %s', config_filename)
+
+            config_raw = None
+            try:
+                fh = open(config_filename, 'rb')
+                config_raw = fh.read()
+                fh.close()
+            except IOError as err:
+                logging.error('could not read configuration file: %s', err)
+
+            try:
+                self.config = json.loads(config_raw)
+                logging.debug('successfully parsed %i characters from configuration file', len(config_raw))
+            except json.JSONDecodeError as err:
+                logging.error('could parse configuration file: %s', err)
+        else:
+            logging.info('no configuration file found')
+
+    def broadcast(self, message):
+        if self.broadcaster is None:
+            self.broadcaster = Broadcaster()
+
+        self.broadcaster.broadcast(message)
+
+    def listen(self, callback):
+        if self.listener is None:
+            self.listener = Listener(callback)
+
+        self.listener.start()
+
     def status(self):
         raise NotImplemented('Application is missing status implementation')
 
@@ -120,7 +162,6 @@ def smrt(route, **kwargs):
 
 def call_types(in_type, out_type):
     def decorated(fn):
-        logging.debug('in_type=%s, out_type=%s', in_type, out_type)
         if in_type is not None and out_type is None:
             @consumes(in_type)
             @wraps(fn)
