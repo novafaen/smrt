@@ -12,7 +12,8 @@ setup(
     packages=['smrt'],
     install_requires=[
         'flask',
-        'flask-negotiate'
+        'flask-negotiate',
+        'werkzeug'
     ],
     test_suite='tests',
     tests_require=[

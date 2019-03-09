@@ -13,7 +13,7 @@ class Broadcaster:
         if not isinstance(message, str):
             message = str(message)
 
-        logging.debug('broadcasting "%s" on port %i', message, self._port)
+        logging.debug('[broadcaster] sending "%s" on port %i', message, self._port)
 
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -38,16 +38,16 @@ class Listener(Thread):
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.bind(('', self._port))  # bind to local address
 
-        logging.info('listening for broadcast on port %i', self._port)
+        logging.info('[listener] listening on port %i', self._port)
 
         self._execute = True
 
         while self._execute:
             message = sock.recvfrom(1024)  # message cannot be bigger than this!
             data, (sender, port) = message
-            logging.debug('received broadcast message "%s", from %s:%i', data, sender, port)
+            logging.debug('[listener] received broadcast message "%s", from %s:%i', data, sender, port)
 
             self._callback(data)
 
-        logging.info('stopped listening to broadcast port %i', self._port)
+        logging.info('[listener] stopped listening to port %i', self._port)
         sock.close()

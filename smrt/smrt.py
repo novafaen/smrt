@@ -89,7 +89,7 @@ class SMRTApp:
         config_filename = os.path.join(os.path.dirname(os.getcwd()), 'configuration.json')
 
         if os.path.isfile(config_filename):
-            logging.info('configuration file found: %s', config_filename)
+            logging.info('[smrt] configuration file found: %s', config_filename)
 
             config_raw = None
             try:
@@ -97,15 +97,15 @@ class SMRTApp:
                 config_raw = fh.read()
                 fh.close()
             except IOError as err:
-                logging.error('could not read configuration file: %s', err)
+                logging.error('[smrt] could not read configuration file: %s', err)
 
             try:
                 self.config = json.loads(config_raw)
-                logging.debug('successfully parsed %i characters from configuration file', len(config_raw))
+                logging.debug('[smrt] successfully parsed %i characters from configuration file', len(config_raw))
             except json.JSONDecodeError as err:
-                logging.error('could parse configuration file: %s', err)
+                logging.error('[smrt] could parse configuration file: %s', err)
         else:
-            logging.info('no configuration file found')
+            logging.info('[smrt] no configuration file found')
 
     def broadcast(self, message):
         if self.broadcaster is None:
