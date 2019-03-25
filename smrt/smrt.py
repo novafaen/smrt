@@ -212,9 +212,9 @@ def test_error():
 def all_exception_handler(error):
     logging.critical(error, exc_info=True)
 
-    return app.create_error(502,
-                            'Bad Gateway',
-                            'Received invalid response from proxy.',
+    return app.create_error(500,
+                            'Internal Server Error',
+                            'An unexpected error has occurred.',
                             error=True)
 
 
@@ -222,9 +222,9 @@ def all_exception_handler(error):
 def handle_internal_server_error(error):
     logging.warning(error, exc_info=True)
 
-    return app.create_error(500,
-                            'Internal Server Error',
-                            'An unexpected error has occurred.',
+    return app.create_error(502,
+                            'Bad Gateway',
+                            'Received invalid response from proxy.',
                             error=True)
 
 
