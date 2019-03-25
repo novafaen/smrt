@@ -13,7 +13,8 @@ setup(
     install_requires=[
         'flask',
         'flask-negotiate',
-        'werkzeug'
+        'werkzeug',
+        'requests'
     ],
     test_suite='tests',
     tests_require=[

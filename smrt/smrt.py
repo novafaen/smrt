@@ -6,7 +6,7 @@ from functools import wraps
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
-from werkzeug.exceptions import MethodNotAllowed
+from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 
 from smrt.broadcast import Broadcaster, Listener
 
@@ -204,13 +204,24 @@ def status():
       produces='application/se.novafaen.smrt.test_accept.v1+json',
       consumes='application/se.novafaen.smrt.test_content_type.v1+json',
       methods=['GET', 'PUT'])
-def test():
+def test_error():
     raise RuntimeError('Should raise internal server error')
 
 
 @app.errorhandler(Exception)
 def all_exception_handler(error):
     logging.critical(error, exc_info=True)
+
+    return app.create_error(502,
+                            'Bad Gateway',
+                            'Received invalid response from proxy.',
+                            error=True)
+
+
+@app.errorhandler(InternalServerError)
+def handle_internal_server_error(error):
+    logging.warning(error, exc_info=True)
+
     return app.create_error(500,
                             'Internal Server Error',
                             'An unexpected error has occurred.',
@@ -219,6 +230,8 @@ def all_exception_handler(error):
 
 @app.errorhandler(NotAcceptable)
 def handle_invalid_usage(error):
+    logging.debug(error, exc_info=True)
+
     accept_type = ''
     if 'Accept' in request.headers and request.headers['Accept'] != '*/*':
         accept_type = request.headers['Accept']
@@ -231,6 +244,8 @@ def handle_invalid_usage(error):
 
 @app.errorhandler(UnsupportedMediaType)
 def handle_invalid_usage(error):
+    logging.debug(error, exc_info=True)
+
     content_type = ''
     if 'Content-Type' in request.headers:
         content_type = request.headers['Content-Type']
@@ -244,6 +259,8 @@ def handle_invalid_usage(error):
 @app.errorhandler(MethodNotAllowed)
 @app.errorhandler(404)
 def not_found(error):
+    logging.debug(error, exc_info=True)
+
     return app.create_error(405,
                             'Method Not Allowed',
                             'No method \'%s\' exist.' % request.path,

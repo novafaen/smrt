@@ -38,7 +38,7 @@ class Listener(Thread):
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.bind(('', self._port))  # bind to local address
 
-        logging.info('[listener] listening on port %i', self._port)
+        logging.info('[listener] listening on broadcast port %i', self._port)
 
         self._execute = True
 
