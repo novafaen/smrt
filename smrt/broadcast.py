@@ -17,7 +17,7 @@ class Broadcaster:
 
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        sock.sendto(bytes(message, 'utf-8'), ('255.255.255.255', self._port))
+        sock.sendto(bytes(message), ('255.255.255.255', self._port))
 
 
 class Listener(Thread):
@@ -26,7 +26,7 @@ class Listener(Thread):
     _callback = None
 
     def __init__(self, callback, port=28015):
-        super().__init__()
+        Thread.__init__(self)
 
         self._callback = callback
         self._port = port

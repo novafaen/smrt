@@ -8,13 +8,15 @@ from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 
-from smrt.broadcast import Broadcaster, Listener
+from .broadcast import Broadcaster, Listener
 
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     level=logging.DEBUG
 )
+
+log = logging.getLogger('smrt')
 
 
 class SMRT(Flask):
@@ -33,6 +35,7 @@ class SMRT(Flask):
         if not isinstance(client, SMRTApp):
             raise NotImplementedError('Client registration failed, client does not implement SMRTApp interface')
 
+        log.debug('client registered: %s', client.client_name())
         self._client = client
 
     def increase_successful(self):
@@ -89,7 +92,7 @@ class SMRTApp:
         config_filename = os.path.join(os.path.dirname(os.getcwd()), 'configuration.json')
 
         if os.path.isfile(config_filename):
-            logging.info('[smrt] configuration file found: %s', config_filename)
+            log.info('configuration file found: %s', config_filename)
 
             config_raw = None
             try:
@@ -97,15 +100,15 @@ class SMRTApp:
                 config_raw = fh.read()
                 fh.close()
             except IOError as err:
-                logging.error('[smrt] could not read configuration file: %s', err)
+                log.error('could not read configuration file: %s', err)
 
             try:
                 self.config = json.loads(config_raw)
-                logging.debug('[smrt] successfully parsed %i characters from configuration file', len(config_raw))
+                log.debug('successfully parsed %i characters from configuration file', len(config_raw))
             except json.JSONDecodeError as err:
-                logging.error('[smrt] could parse configuration file: %s', err)
+                log.error('could parse configuration file: %s', err)
         else:
-            logging.info('[smrt] no configuration file found')
+            log.info('no configuration file found')
 
     def broadcast(self, message):
         if self.broadcaster is None:
@@ -150,7 +153,7 @@ def smrt(route, **kwargs):
             result = fn(*wrapper_args, **wrapper_kwargs)
 
             end = int(round(time.time() * 1000))  # stop timer
-            logging.debug('[%s ms] %s executed', end - start, route)
+            log.debug('%s executed in %s ms', end - start, route)
 
             app.increase_successful()
 
@@ -210,8 +213,7 @@ def test_error():
 
 @app.errorhandler(Exception)
 def all_exception_handler(error):
-    logging.critical(error, exc_info=True)
-
+    log.critical(error, exc_info=True)
     return app.create_error(500,
                             'Internal Server Error',
                             'An unexpected error has occurred.',
@@ -220,8 +222,7 @@ def all_exception_handler(error):
 
 @app.errorhandler(InternalServerError)
 def handle_internal_server_error(error):
-    logging.warning(error, exc_info=True)
-
+    log.warning(error, exc_info=True)
     return app.create_error(502,
                             'Bad Gateway',
                             'Received invalid response from proxy.',
@@ -230,8 +231,7 @@ def handle_internal_server_error(error):
 
 @app.errorhandler(NotAcceptable)
 def handle_invalid_usage(error):
-    logging.debug(error, exc_info=True)
-
+    log.debug(error, exc_info=True)
     accept_type = ''
     if 'Accept' in request.headers and request.headers['Accept'] != '*/*':
         accept_type = request.headers['Accept']
@@ -244,8 +244,7 @@ def handle_invalid_usage(error):
 
 @app.errorhandler(UnsupportedMediaType)
 def handle_invalid_usage(error):
-    logging.debug(error, exc_info=True)
-
+    log.debug(error, exc_info=True)
     content_type = ''
     if 'Content-Type' in request.headers:
         content_type = request.headers['Content-Type']
@@ -259,8 +258,7 @@ def handle_invalid_usage(error):
 @app.errorhandler(MethodNotAllowed)
 @app.errorhandler(404)
 def not_found(error):
-    logging.debug(error, exc_info=True)
-
+    log.debug(error, exc_info=True)
     return app.create_error(405,
                             'Method Not Allowed',
                             'No method \'%s\' exist.' % request.path,
