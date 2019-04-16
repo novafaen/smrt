@@ -1,3 +1,16 @@
+"""SMRT is a convenience framework build around flask.
+
+SMRT, pronounced SMART, is a convenience framework around Flask and Flask-Negotiate.
+Applications, that use SMRT should extent `SMRTApp`. This app must be registered
+with SMRT using `app.register_application` function.
+
+SMRT will give the application:
+ - Basig logging.
+ - Routing using @SMRT decorator.
+ - Basic error handling.
+ - Basic configuration file reading.
+"""
+
 import json
 import logging
 import time
@@ -19,38 +32,53 @@ logging.basicConfig(
 log = logging.getLogger('smrt')
 
 
-class SMRT(Flask):
+class _SMRT(Flask):
+    """Private class extending Flask with SMRT functionality."""
+
     def __init__(self, *args, **kwargs):
-        super(SMRT, self).__init__(*args, **kwargs)
+        """Create SMRT framework with Flask arguments."""
+        Flask.__init__(self, *args, **kwargs)
 
-        self._client = None  # client app running on top of SMRT
+        self._app = None  # client app running on top of SMRT
 
-        self._requests_total = 0
         self._requests_successful = 0
         self._requests_warning = 0
         self._requests_error = 0
         self._requests_bad = 0
 
-    def register_client(self, client):
-        if not isinstance(client, SMRTApp):
+    def register_application(self, app):
+        """Register an application with SMRT framework.
+
+        :param app: application to be mounted, must be a `SMRTApp`.
+        :raise NotImplementedError: If application does not extend `SMRTApp`.
+        """
+        if not isinstance(app, SMRTApp):
             raise NotImplementedError('Client registration failed, client does not implement SMRTApp interface')
 
-        log.debug('client registered: %s', client.client_name())
-        self._client = client
+        log.debug('application registered: %s', app.application_name())
+        self._app = app
 
     def increase_successful(self):
+        """Increase successful amount."""
         self._requests_successful += 1
-        self._requests_total += 1
 
     def create_error(self, code, description, message, warning=False, error=False, bad=False):
+        """Create error response.
+
+        :param code: HTML Error code.
+        :param description: Short error description.
+        :param message: Detailed error message.
+        :param warning: Should error be counted as a warning, default `False`.
+        :param error: Should error be counted as a error, default `False`.
+        :param bad: Should error be counted as a bad request, default `False`.
+        :returns: SMRT return type, derived from Flask return type
+        """
         if warning:
             self._requests_warning += 1
         if error:
             self._requests_error += 1
         if bad:
             self._requests_bad += 1
-
-        self._requests_total += 1
 
         body = {
             'code': code,
@@ -62,10 +90,15 @@ class SMRT(Flask):
         return response
 
     def status(self):
+        """Return status object.
+
+        Get the status from last time launched.
+        :returns: status object
+        """
         body = {
             'smrt': {
                 'smrt_version': '0.0.1',
-                'app_loaded': self._client is not None,
+                'app_loaded': self._app is not None,
             },
             'server_time': int(time.time()),  # force integer, no need to have better resolution
             'status': {
@@ -77,18 +110,27 @@ class SMRT(Flask):
             }
         }
 
-        if self._client is not None:
-            body['application'] = self._client.status()
+        if self._app is not None:
+            body['application'] = self._app.status()
 
         return body
 
 
 class SMRTApp:
+    """SMRT Application interface class.
+
+    Application that is registered with SMRT needs to extend `SMRTApp` interface.
+    """
+
     config = None
     broadcaster = None
     listener = None
 
     def __init__(self):
+        """Create and initiate SMRTApp.
+
+        Will read `configuration.json` from current working directory.
+        """
         config_filename = os.path.join(os.path.dirname(os.getcwd()), 'configuration.json')
 
         if os.path.isfile(config_filename):
@@ -111,30 +153,57 @@ class SMRTApp:
             log.info('no configuration file found')
 
     def broadcast(self, message):
+        """Broadcast message to local broadcast address.
+
+        :param message: content to be broadcasted.
+        """
         if self.broadcaster is None:
             self.broadcaster = Broadcaster()
 
         self.broadcaster.broadcast(message)
 
     def listen(self, callback):
+        """Register callback function for received broadcasts.
+
+        :param callback: function callback on received broadcast.
+        """
         if self.listener is None:
             self.listener = Listener(callback)
 
         self.listener.start()
 
     def status(self):
-        raise NotImplemented('Application is missing status implementation')
+        """Return application status object.
+
+        :returns: status object.
+        """
+        raise NotImplementedError('Application is missing status implementation')
 
     @staticmethod
-    def client_name():
-        raise NotImplemented('Application is missing client_name implementation')
+    def application_name():
+        """Return application name.
+
+        :returns: application name as string.
+        """
+        raise NotImplementedError('Application is missing client_name implementation')
 
 
-# create app
-app = SMRT(__name__)
+# create app (i.e. flask instance)
+app = _SMRT(__name__)
 
 
 def smrt(route, **kwargs):
+    """Routing decorator.
+
+    Usage:
+    `@smrt(
+        '/example'                          <- mandatory
+        produces='application/my.type+json' <- optional
+        consumes='application/my.type+json' <- optional
+    )`
+
+    For more information, see Flask routing documentation.
+    """
     def decorated(fn):
         smrt_produces = kwargs.get('produces', None)
         if smrt_produces is not None:
@@ -145,7 +214,7 @@ def smrt(route, **kwargs):
             del kwargs['consumes']
 
         @app.route(route, **kwargs)
-        @call_types(smrt_consumes, smrt_produces)
+        @_call_types(smrt_consumes, smrt_produces)
         @wraps(fn)
         def wrapper(*wrapper_args, **wrapper_kwargs):
             start = int(round(time.time() * 1000))  # start timer
@@ -153,7 +222,7 @@ def smrt(route, **kwargs):
             result = fn(*wrapper_args, **wrapper_kwargs)
 
             end = int(round(time.time() * 1000))  # stop timer
-            log.debug('%s executed in %s ms', end - start, route)
+            log.debug('%s executed in %s ms', route, end - start)
 
             app.increase_successful()
 
@@ -163,7 +232,8 @@ def smrt(route, **kwargs):
     return decorated
 
 
-def call_types(in_type, out_type):
+def _call_types(in_type, out_type):
+    """Handle produces and/or consumes."""
     def decorated(fn):
         if in_type is not None and out_type is None:
             @consumes(in_type)
@@ -197,7 +267,11 @@ def call_types(in_type, out_type):
 
 @smrt('/status',
       produces='application/se.novafaen.smrt.status.v1+json')
-def status():
+def get_status():
+    """Get status for the application since boot time.
+
+    :returns: status respone with code 200
+    """
     body = app.status()
     response = make_response(jsonify(body), 200)
     return response
@@ -207,12 +281,20 @@ def status():
       produces='application/se.novafaen.smrt.test_accept.v1+json',
       consumes='application/se.novafaen.smrt.test_content_type.v1+json',
       methods=['GET', 'PUT'])
-def test_error():
+def get_put_error():
+    """Produce Internal Server error, for testing purposes.
+
+    :returns: Internal Server error with code 500.
+    """
     raise RuntimeError('Should raise internal server error')
 
 
 @app.errorhandler(Exception)
-def all_exception_handler(error):
+def handler_uncaught_exception(error):
+    """Catches unhandeled errors and return Internal Server Error.
+
+    :returns: Internal Server error with code 500.
+    """
     log.critical(error, exc_info=True)
     return app.create_error(500,
                             'Internal Server Error',
@@ -221,7 +303,11 @@ def all_exception_handler(error):
 
 
 @app.errorhandler(InternalServerError)
-def handle_internal_server_error(error):
+def handler_internal_server_error(error):
+    """Catches Internal Server error and rethrows as Bad Gateway.
+
+    :returns: Bad Gateway error with code 502.
+    """
     log.warning(error, exc_info=True)
     return app.create_error(502,
                             'Bad Gateway',
@@ -230,7 +316,11 @@ def handle_internal_server_error(error):
 
 
 @app.errorhandler(NotAcceptable)
-def handle_invalid_usage(error):
+def handler_not_acceptable(error):
+    """Cathes Not Acceptable errors.
+
+    :returns: Not Acceptable error with code 406.
+    """
     log.debug(error, exc_info=True)
     accept_type = ''
     if 'Accept' in request.headers and request.headers['Accept'] != '*/*':
@@ -243,7 +333,11 @@ def handle_invalid_usage(error):
 
 
 @app.errorhandler(UnsupportedMediaType)
-def handle_invalid_usage(error):
+def handler_unsupported_type(error):
+    """Catches Unsupported Media Type errors.
+
+    :retuens: Unsupported Media Type error with code 415.
+    """
     log.debug(error, exc_info=True)
     content_type = ''
     if 'Content-Type' in request.headers:
@@ -257,7 +351,11 @@ def handle_invalid_usage(error):
 
 @app.errorhandler(MethodNotAllowed)
 @app.errorhandler(404)
-def not_found(error):
+def handler_not_found(error):
+    """Catches Not Found or Method Not Allowed errors, rethrows as Method Not Allowed.
+
+    :returns: Method Not Allowed error with code 405
+    """
     log.debug(error, exc_info=True)
     return app.create_error(405,
                             'Method Not Allowed',

@@ -1,19 +1,39 @@
+"""Local area network broadcast and listener.
+
+Can be used to broadcast and listen for component lifecycles or communicate configuration.
+"""
+
 import logging
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST
 from threading import Thread
 
+log = logging.getLogger('smrt')
+
 
 class Broadcaster:
+    """Simple broadcast class.
+
+    Initiate and broadcast, simple as that.
+    """
+
     _port = None
 
     def __init__(self, port=28015):
+        """Create with broadcast port.
+
+        :param port: port number, default 28015.
+        """
         self._port = port
 
     def broadcast(self, message):
+        """Broadcast message.
+
+        :param message: message to be broadcasted.
+        """
         if not isinstance(message, str):
             message = str(message)
 
-        logging.debug('[broadcaster] sending "%s" on port %i', message, self._port)
+        log.debug('[broadcaster] sending "%s" on port %i', message, self._port)
 
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -21,33 +41,48 @@ class Broadcaster:
 
 
 class Listener(Thread):
+    """Simple broadcast listener class.
+
+    Initiate and listen, simple as that.
+    """
+
     _port = None
     _execute = None
     _callback = None
 
     def __init__(self, callback, port=28015):
+        """Create with port and callback function.
+
+        :param callback: callback function upon broadcast message.
+        :param port: port to listen to, default 28015.
+        """
         Thread.__init__(self)
 
         self._callback = callback
         self._port = port
 
     def stop(self):
+        """Stop listening for broadcast messages."""
         self._execute = False
 
     def run(self):
+        """Start thread that listen for messages.
+
+        Should be started via `Thread.start()`.
+        """
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.bind(('', self._port))  # bind to local address
 
-        logging.info('[listener] listening on broadcast port %i', self._port)
+        log.info('listening on broadcast port %i', self._port)
 
         self._execute = True
 
         while self._execute:
             message = sock.recvfrom(1024)  # message cannot be bigger than this!
             data, (sender, port) = message
-            logging.debug('[listener] received broadcast message "%s", from %s:%i', data, sender, port)
+            log.debug('received broadcast message "%s", from %s:%i', data, sender, port)
 
             self._callback(data)
 
-        logging.info('[listener] stopped listening to port %i', self._port)
+        log.info('stopped listening to broadcast port %i', self._port)
         sock.close()
