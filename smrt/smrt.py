@@ -46,6 +46,8 @@ class _SMRT(Flask):
         self._requests_error = 0
         self._requests_bad = 0
 
+        self._started = int(time.time())  # force integer
+
     def register_application(self, app):
         """Register an application with SMRT framework.
 
@@ -95,18 +97,20 @@ class _SMRT(Flask):
         Get the status from last time launched.
         :returns: status object
         """
+        now = int(time.time())
         body = {
             'smrt': {
                 'smrt_version': '0.0.1',
                 'app_loaded': self._app is not None,
+                'uptime': now - self._started
             },
-            'server_time': int(time.time()),  # force integer, no need to have better resolution
+            'server_time': now,  # force integer, no need to have better resolution
             'status': {
                 'amount_successful': self._requests_successful,
                 'amount_warning': self._requests_warning,
                 'amount_error': self._requests_error,
                 'amount_bad': self._requests_bad,
-                'amount_total': self._requests_total
+                'amount_total': self._requests_successful + self._requests_warning + self._requests_error + self._requests_bad
             }
         }
 
