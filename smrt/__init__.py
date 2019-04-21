@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """SMRT module.
 
 This module should contain everything you need from Flask.

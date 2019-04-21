@@ -189,7 +189,7 @@ class SMRTApp:
 
         :returns: application name as string.
         """
-        raise NotImplementedError('Application is missing client_name implementation')
+        raise NotImplementedError('Application is missing application_name implementation')
 
 
 # create app (i.e. flask instance)
