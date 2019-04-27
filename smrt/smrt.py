@@ -19,6 +19,7 @@ from functools import wraps
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
+from jsonschema import validate as validate_json, ValidationError
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 
 from .broadcast import Broadcaster, Listener
@@ -64,12 +65,12 @@ class _SMRT(Flask):
         """Increase successful amount."""
         self._requests_successful += 1
 
-    def create_error(self, code, description, message, warning=False, error=False, bad=False):
+    def create_error(self, code, error_type, description, warning=False, error=False, bad=False):
         """Create error response.
 
         :param code: HTML Error code.
-        :param description: Short error description.
-        :param message: Detailed error message.
+        :param error_type: Error type, typically HTTP error name.
+        :param description: Detailed description what went wrong.
         :param warning: Should error be counted as a warning, default `False`.
         :param error: Should error be counted as a error, default `False`.
         :param bad: Should error be counted as a bad request, default `False`.
@@ -84,8 +85,8 @@ class _SMRT(Flask):
 
         body = {
             'code': code,
-            'description': description,
-            'message': message
+            'error': error_type,
+            'description': description
         }
         response = make_response(jsonify(body), code)
         response.headers['Content-Type'] = 'application/se.novafaen.smrt.error.v1+json'
@@ -130,15 +131,20 @@ class SMRTApp:
     broadcaster = None
     listener = None
 
-    def __init__(self):
+    def __init__(self, config_schema=None):
         """Create and initiate SMRTApp.
 
         Will read `configuration.json` from current working directory.
-        """
-        config_filename = os.path.join(os.path.dirname(os.getcwd()), 'configuration.json')
 
-        if os.path.isfile(config_filename):
-            log.info('configuration file found: %s', config_filename)
+        :param config_schema: ``String`` json schema, optional.
+        """
+        config_filename = os.path.join(os.getcwd(), 'configuration.json')
+        log.debug('looking for configration file in cwd: %s', config_filename)
+
+        if not os.path.isfile(config_filename):
+            log.info('No configuration file found')
+        else:
+            log.debug('Configuration file found')
 
             config_raw = None
             try:
@@ -146,15 +152,27 @@ class SMRTApp:
                 config_raw = fh.read()
                 fh.close()
             except IOError as err:
-                log.error('could not read configuration file: %s', err)
+                log.error('Could not read configuration file: %s', err)
+                raise RuntimeError('Could not read configuration file')
 
+            # validate json schema if given
+            if config_schema is not None:
+                try:
+                    validate_json(instace=config_raw, schema=config_schema)
+                except ValidationError as err:
+                    log.critical('Could not validate configuration json: %s', err)
+                    raise RuntimeError('Invalid format in configration file')
+            else:
+                log.warning('Configuration file found, but no schema supplied')
+
+            # surrond with catch, even though json verified we want to make sure no error exist :)
             try:
                 self.config = json.loads(config_raw)
-                log.debug('successfully parsed %i characters from configuration file', len(config_raw))
             except json.JSONDecodeError as err:
-                log.error('could parse configuration file: %s', err)
-        else:
-            log.info('no configuration file found')
+                log.error('Could parse configuration file as JSON: %s', err)
+                raise RuntimeError()
+
+            log.info('Configuration file read and parsed')
 
     def broadcast(self, message):
         """Broadcast message to local broadcast address.

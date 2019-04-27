@@ -15,7 +15,8 @@ setup(
         'flask>=1.0',
         'flask-negotiate>=0.1',
         'werkzeug',
-        'requests>=2.21'
+        'requests>=2.21',
+        'jsonschema>=3.0'
     ],
     test_suite='tests',
     tests_require=[
