@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""``SMRT`` setup tools file."""
 
 from setuptools import setup
 
@@ -11,10 +12,10 @@ setup(
     url='http://smrt.novafaen.se/',
     packages=['smrt'],
     install_requires=[
-        'flask==1.0.2',
-        'flask-negotiate',
+        'flask>=1.0',
+        'flask-negotiate>=0.1',
         'werkzeug',
-        'requests'
+        'requests>=2.21'
     ],
     test_suite='tests',
     tests_require=[
