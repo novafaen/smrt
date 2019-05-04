@@ -13,8 +13,9 @@ Exports:
 - `jsonify` Flask jsonify function.
 """
 
-from .smrt import app, SMRTApp, smrt
+from .smrt import app, smrt
 from .smrt import request, make_response, jsonify
+from .smrtapp import SMRTApp
 from .schemas import read_schema, validate_json
 
 __all__ = ['app', 'SMRTApp', 'smrt', 'request', 'make_response', 'jsonify',
