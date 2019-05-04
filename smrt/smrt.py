@@ -12,7 +12,7 @@ SMRT will give the application:
 """
 
 import json
-import logging
+import logging as loggr
 import time
 import os
 from functools import wraps
@@ -23,14 +23,15 @@ from jsonschema import validate as validate_json, ValidationError
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 
 from .broadcast import Broadcaster, Listener
+from .schemas import read_schema
 
-logging.basicConfig(
+loggr.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
-    level=logging.DEBUG
+    level=loggr.DEBUG
 )
 
-log = logging.getLogger('smrt')
+log = loggr.getLogger('smrt')
 
 
 class _SMRT(Flask):
@@ -131,48 +132,41 @@ class SMRTApp:
     broadcaster = None
     listener = None
 
-    def __init__(self, config_schema=None):
+    def __init__(self, schemas_path, schema):
         """Create and initiate SMRTApp.
 
         Will read `configuration.json` from current working directory.
 
         :param config_schema: ``String`` json schema, optional.
         """
-        config_filename = os.path.join(os.getcwd(), 'configuration.json')
-        log.debug('looking for configration file in cwd: %s', config_filename)
+        if 'SMRT_CONFIGURATION' in os.environ:
+            configuration_path = os.environ['SMRT_CONFIGURATION']
+            log.info('will use application configuration: %s', configuration_path)
 
-        if not os.path.isfile(config_filename):
-            log.info('No configuration file found')
+        if not os.path.isfile(configuration_path):
+            log.info('No configuration file found: %s', configuration_path)
+            return  # exit on no configuration
+
+        log.debug('Configuration file exist')
+
+        try:
+            fh = open(configuration_path, 'rb')
+            config = json.loads(fh.read())
+            fh.close()
+        except (IOError, ValidationError) as err:
+            log.error('Could not read configuration file: %s', err)
+            raise RuntimeError('Could not read configuration file: %s', configuration_path)
+
+        # validate json schema if given
+        if schema is not None:
+            schema = read_schema(schema, path=schemas_path)
+
+            if schema is not None:
+                validate_json(config, schema)
         else:
-            log.debug('Configuration file found')
+            log.warning('Configuration file found, but no schema supplied')
 
-            config_raw = None
-            try:
-                fh = open(config_filename, 'rb')
-                config_raw = fh.read()
-                fh.close()
-            except IOError as err:
-                log.error('Could not read configuration file: %s', err)
-                raise RuntimeError('Could not read configuration file')
-
-            # validate json schema if given
-            if config_schema is not None:
-                try:
-                    validate_json(instace=config_raw, schema=config_schema)
-                except ValidationError as err:
-                    log.critical('Could not validate configuration json: %s', err)
-                    raise RuntimeError('Invalid format in configration file')
-            else:
-                log.warning('Configuration file found, but no schema supplied')
-
-            # surrond with catch, even though json verified we want to make sure no error exist :)
-            try:
-                self.config = json.loads(config_raw)
-            except json.JSONDecodeError as err:
-                log.error('Could parse configuration file as JSON: %s', err)
-                raise RuntimeError()
-
-            log.info('Configuration file read and parsed')
+        log.info('Configuration file read and verified')
 
     def broadcast(self, message):
         """Broadcast message to local broadcast address.

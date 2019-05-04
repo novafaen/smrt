@@ -15,5 +15,7 @@ Exports:
 
 from .smrt import app, SMRTApp, smrt
 from .smrt import request, make_response, jsonify
+from .schemas import read_schema, validate_json
 
-__all__ = ['app', 'SMRTApp', 'smrt', 'request', 'make_response', 'jsonify']
+__all__ = ['app', 'SMRTApp', 'smrt', 'request', 'make_response', 'jsonify',
+           'read_schema', 'validate_json']
