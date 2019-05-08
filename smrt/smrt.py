@@ -22,10 +22,13 @@ from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 from .smrtapp import SMRTApp
 
 loggr.basicConfig(
-    format='%(asctime)s [%(levelname)s] %(message)s',
+    format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     level=loggr.DEBUG
 )
+
+loggr.getLogger('werkzeug').setLevel(loggr.CRITICAL)
+loggr.getLogger('urllib3').setLevel(loggr.CRITICAL)
 
 log = loggr.getLogger('smrt')
 

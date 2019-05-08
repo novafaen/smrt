@@ -25,30 +25,29 @@ class SMRTApp:
     broadcaster = None
     listener = None
 
-    def __init__(self, schemas_path, schema):
+    def __init__(self, schemas_path=None, schema=None):
         """Create and initiate SMRTApp.
 
         Will read `configuration.json` from current working directory.
 
         :param config_schema: ``String`` json schema, optional.
         """
+        configuration_path = None
         if 'SMRT_CONFIGURATION' in os.environ:
             configuration_path = os.environ['SMRT_CONFIGURATION']
-            log.info('will use application configuration: %s', configuration_path)
+            log.info('%s, environent variable SMRT_CONFIGURATION set to "%s"', self.application_name(), configuration_path)
 
-        if not os.path.isfile(configuration_path):
-            log.info('No configuration file found: %s', configuration_path)
-            return  # exit on no configuration
-
-        log.debug('Configuration file exist')
+            if not os.path.isfile(configuration_path):
+                log.warning('%s, configuration file "%s" does not exist!', self.application_name(), configuration_path)
+                return  # exit on no configuration
 
         try:
             fh = open(configuration_path, 'rb')
             config = loads(fh.read())
             fh.close()
         except (IOError, ValidationError) as err:
-            log.error('Could not read configuration file: %s', err)
-            raise RuntimeError('Could not read configuration file: %s', configuration_path)
+            log.error('%s, could not read configuration file "%s", reason: %s', self.application_name(), configuration_path, err)
+            raise RuntimeError('Could not open configuration file, reason: %s', err)
 
         # validate json schema if given
         if schema is not None:
@@ -57,9 +56,10 @@ class SMRTApp:
             if schema is not None:
                 validate_json(config, schema)
         else:
-            log.warning('Configuration file found, but no schema supplied')
+            log.warning('%s, application is missing schema for configuration, please fix!', self.application_name())
 
-        log.info('Configuration file read and verified')
+        log.info('%s, configuration loaded and verified', self.application_name())
+        self._config = config
 
     def broadcast(self, message):
         """Broadcast message to local broadcast address.

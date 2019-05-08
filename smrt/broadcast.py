@@ -3,11 +3,11 @@
 Can be used to broadcast and listen for component lifecycles or communicate configuration.
 """
 
-import logging
+import logging as loggr
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST
 from threading import Thread
 
-log = logging.getLogger('smrt')
+log = loggr.getLogger('smrt')
 
 
 class Broadcaster:
@@ -33,7 +33,7 @@ class Broadcaster:
         if not isinstance(message, str):
             message = str(message)
 
-        log.debug('[broadcaster] sending "%s" on port %i', message, self._port)
+        log.debug('broadcasting on port %s, message: "%s"', self._port, message)
 
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
