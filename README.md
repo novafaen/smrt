@@ -1,8 +1,8 @@
 # SMRT framework
-Pronounced SMART, is a framework built upon flask, flask-negotiate and requests.
+Pronounced SMART, is a microservice framework built upon; flask, flask-negotiate and requests.
 
 ## Purpose
-The purpose of this project is to build a framework that will speed up microservice development. However, this project is made for self-educational purpose, so expect the re-invented wheel.
+The purpose of this project is to build a framework that will speed up (my) microservice development while learning Python programming language. This project is made for self-educational purpose, expect the wheel re-invented!
 
 ## Usage
 Short description how to get started:
@@ -11,13 +11,20 @@ Short description how to get started:
 3) from `smrt`, import `smrt` decorator. This decorator combines flask and flask-negotiate.
 
 ## Example
-Small example how to use `smrt` to create simple hello world application.
+Small example how to use `smrt` to create simple hello world application. Below is an example application that exposes endpoint `POST /hello` that returns a greeting, and if the name have been greeted before.
 
-This application will create an app-specific endpoint `POST /hello` and return a greeting
+### Imports
+Imported on seperate rows just to clarify why you need to import these. These are the bare minimum you need from `smrt` to get started.
 ```python
-import json
-from smrt import app, SMRTApp, smrt, make_response
+from smrt import app  # SMRT class that extend flask app.
+from smrt import SMRTApp  # class to be extended with application specific functionality.
+from smrt import smrt  # routing decorator.
+from smrt import make_response  # creates correct response type to be returned to caller.
+```
 
+### Extending SMRTApp
+To create your own application, you need to extend `SMRTApp` class. the functions `status` and `application_name` are the two only mandatory functions to implement.
+```python
 class HelloWorldApp(SMRTApp):
   """My first ``SMRTApp``, expect great things to come."""
   
@@ -41,16 +48,26 @@ class HelloWorldApp(SMRTApp):
     return 'MyHelloWorldApplication'
   
   def helloName(self, name):
-    """Store name of greeter"""
+    """Store name of greeter
+    
+    :param name: `String` name of greeter
+    :returns: `True` if first time name is greeted, otherwise `False`
+    """
     if name not in self._names:
       self._names.append(name)
       return True  # first time greeted
       
     return False  # person was already greeted before
-      
+```
+
+### Register application with SMRT
+```python
 helloWorldApp = HelloWorldApp()  # create application
 app.register_application(helloWorldApp)  # and register application with smrt
+```
 
+### Create endpoint
+```python
 @smrt('/hello',
       methods=['POST'],
       consumes='application/my.application.name.v1+json',
@@ -73,7 +90,7 @@ def post_hello():
 ## Features
 
 ### Error handling
-Already implemented error handling `smrt` for basic API functionality.
+`smrt` provide basiderror handling for basic API functionality.
 #### Unsupported Media Type (Code 415)
 If a endpoint is called, but with wrong (or missing) `Content-Type`, `smrt` will automatically return a `Unsupported Media Type` error.
 #### Not Acceptable (406)
@@ -82,6 +99,7 @@ If a endpoint is called, but with wrong (or missing) `Accept` header, `smrt` wil
 If a endpoint is called that does not exist, `smrt` will automatically return a `Method Not Allowed` error. 
 
 Why not `404 Not Found` error when an endpoint does not exist?
+
 Ok, hear me out: `smrt` is created for an API implementation rather than a classic web host. Unknown endpoint should return `Method not Allowed`, while an enpoint that does exist but an ID or resource does not exist should return `Not Found`.
 
 Example:
@@ -96,6 +114,7 @@ If a function raise any uncaught exception, `smrt` will return a `Internal Serve
 with `@smrt` decorator you can route requests to specific functions. See `Flask-Negotiate` documentation how to use this.
 
 Why not just use `Flask` and `Flask-Negotiate`?
+
 Ok, hear me out: `smrt` combines these to automatically return `Method Not Allowed` or `Not Acceptable` instead of `Not Found` that you would get without `smrt`. This feature might already exist, maybe, but since this project is for self education I re-invented the wheel :)
 
 Example:
@@ -154,3 +173,6 @@ Example:
 ```python
 "MyHelloWorldApplication"
 ```
+
+## Limitations
+Don't get me started, `smrt` is basically limitations only :)
