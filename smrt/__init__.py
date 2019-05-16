@@ -13,10 +13,11 @@ Exports:
 - `jsonify` Flask jsonify function.
 """
 
-from .smrt import app, smrt
-from .smrt import request, make_response, jsonify
+from .smrt import app, smrt, request
+from .smrt import make_response, jsonify
 from .smrtapp import SMRTApp
 from .schemas import read_schema, validate_json
+from .make_request import make_request, InternalServerError
 
 __all__ = ['app', 'SMRTApp', 'smrt', 'request', 'make_response', 'jsonify',
-           'read_schema', 'validate_json']
+           'read_schema', 'validate_json', 'make_request', 'InternalServerError']
