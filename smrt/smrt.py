@@ -20,6 +20,7 @@ from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaT
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 
 from .smrtapp import SMRTApp
+from .make_request import GatewayTimeout
 
 loggr.basicConfig(
     format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
@@ -245,6 +246,19 @@ def handler_internal_server_error(error):
     return app.create_error(502,
                             'Bad Gateway',
                             'Received invalid response from proxy.',
+                            error=True)
+
+
+@app.errorhandler(GatewayTimeout)
+def handler_gateway_timeout_error(error):
+    """Catches Internal Server error and rethrows as Bad Gateway.
+
+    :returns: Bad Gateway error with code 504.
+    """
+    log.warning(error, exc_info=True)
+    return app.create_error(504,
+                            'Gateway Timeout',
+                            'Received no response from proxy.',
                             error=True)
 
 
