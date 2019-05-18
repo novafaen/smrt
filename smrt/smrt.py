@@ -11,16 +11,18 @@ SMRT will give the application:
  - Basic configuration file reading.
 """
 
+from json.decoder import JSONDecodeError
 import logging as loggr
 import time
 from functools import wraps
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
-from werkzeug.exceptions import MethodNotAllowed, InternalServerError
+from werkzeug.exceptions import MethodNotAllowed, InternalServerError, BadRequest
 
 from .smrtapp import SMRTApp
 from .make_request import GatewayTimeout
+from .schemas import read_schema, validate_json
 
 loggr.basicConfig(
     format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
@@ -166,6 +168,21 @@ def smrt(route, **kwargs):
     return decorated
 
 
+def _check_content_type(schema_name, content_bytes):
+    """Throw appropriate error if content is not matching schema."""
+    try:
+        content = content_bytes.get_json()
+    except JSONDecodeError as err:
+        log.debug('could not parse content: %s', err)
+        raise UnsupportedMediaType('could not verify schema')
+
+    schema = read_schema(schema_name.replace('application/', '').replace('+json', '.json'))
+    if schema is None:
+        raise RuntimeError('could not find schema')
+    if not validate_json(content, schema):
+        raise UnsupportedMediaType('could not verify schema')
+
+
 def _call_types(in_type, out_type):
     """Handle produces and/or consumes."""
     def decorated(fn):
@@ -173,6 +190,8 @@ def _call_types(in_type, out_type):
             @consumes(in_type)
             @wraps(fn)
             def wrapper(*w_args, **w_kwargs):
+                _check_content_type(in_type, request)
+
                 return fn(*w_args, **w_kwargs)
             return wrapper
 
@@ -188,6 +207,8 @@ def _call_types(in_type, out_type):
             @produces(out_type)
             @wraps(fn)
             def wrapper(*w_args, **w_kwargs):
+                _check_content_type(in_type, request.get_json())
+
                 return fn(*w_args, **w_kwargs)
             return wrapper
 
@@ -293,6 +314,20 @@ def handler_unsupported_type(error):
     return app.create_error(415,
                             'Unsupported Media Type',
                             'Content type \'%s\' cannot be handled by endpoint.' % content_type,
+                            bad=True)
+
+
+@app.errorhandler(BadRequest)
+def handler_bad_request(error):
+    """Catches Bad Request errors.
+
+    :retuens: Bad Request error with code 400.
+    """
+    log.debug(error, exc_info=True)
+
+    return app.create_error(400,
+                            'Bad Request',
+                            'Data does not conform to API specification.',
                             bad=True)
 
 

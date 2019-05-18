@@ -1,5 +1,6 @@
 """Convenience methods for handling schemas."""
 
+import glob
 import json
 import logging as loggr  # name to avoid using default logger for logging.
 import os
@@ -72,12 +73,20 @@ def read_schema(schema_name, path=None):
     if schema is not None:
         return schema
 
-    # 3.5) in current working directory slash schemas
-    schema_path = os.path.join(os.getcwd(), 'schemas')
+    # 3.5) go down in current working directory
+    directories = []
+    for root, dirs, files in os.walk(os.getcwd()):
+        if len(dirs) == 0:
+            directories.append(root)
+        # for subdir in dirs:
+        #    directories.append(os.path.join(root, subdir))
 
-    schema = _exist_and_read(schema_path, schema_name)
-    if schema is not None:
-        return schema
+    log.debug('found %i subdirectories in working dir', len(directories))
+
+    for directory in directories:
+        schema = _exist_and_read(directory, schema_name)
+        if schema is not None:
+            return schema
 
     # 4) online on smrt.novafaen.se
     # todo: implement this when novafaen.se support this
