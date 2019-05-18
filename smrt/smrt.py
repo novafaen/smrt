@@ -119,7 +119,12 @@ class _SMRT(Flask):
         }
 
         if self._app is not None:
-            body['application'] = self._app.status()
+            app_status = self._app.status()
+            if isinstance(app_status, dict) and len(app_status) == 3 and \
+                    'name' in app_status and 'status' in app_status and 'version' in app_status:
+                body['application'] = self._app.status()
+            else:
+                raise RuntimeError('app status have invalid format')
 
         return body
 
