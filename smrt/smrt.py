@@ -212,7 +212,7 @@ def _call_types(in_type, out_type):
             @produces(out_type)
             @wraps(fn)
             def wrapper(*w_args, **w_kwargs):
-                _check_content_type(in_type, request.get_json())
+                _check_content_type(in_type, request)
 
                 return fn(*w_args, **w_kwargs)
             return wrapper
