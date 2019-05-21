@@ -20,6 +20,7 @@ from smrt import app  # SMRT class that extend flask app.
 from smrt import SMRTApp  # class to be extended with application specific functionality.
 from smrt import smrt  # routing decorator.
 from smrt import make_response  # creates correct response type to be returned to caller.
+from smrt import get, put, post  # wrappers around requests to hande exceptions in a smrt way.
 ```
 
 ### Extending SMRTApp
@@ -39,9 +40,14 @@ class HelloWorldApp(SMRTApp):
     return {
       'name': self.application_name(),
       'status': 'OK',  # hello world is always ok :)
-      'version': '1.0.0'
+      'version': self.version()
     }
-        
+    
+  @staticmethod
+  def version():
+    """Use ``SMRTApp`` documentation for ``version`` implementation."""
+    return '1.0.0'
+
   @staticmethod
   def application_name():
     """Use ``SMRTApp`` documentation for ``application_name`` implementation."""
@@ -75,7 +81,7 @@ app.register_application(helloWorldApp)  # and register application with smrt
 def post_hello():
   data = json.loads(request.data)  # assume correct json format for this example
 
-  firstGreet = helloWorldApp.helloName(data.name)
+  firstGreet = helloWorldApp.helloName(data['name'])
     
   body = {
     "message": "Hello %s, how are you?" % name,
@@ -90,11 +96,11 @@ def post_hello():
 ## Features
 
 ### Error handling
-`smrt` provide basiderror handling for basic API functionality.
-#### Unsupported Media Type (Code 415)
-If a endpoint is called, but with wrong (or missing) `Content-Type`, `smrt` will automatically return a `Unsupported Media Type` error.
-#### Not Acceptable (406)
-If a endpoint is called, but with wrong (or missing) `Accept` header, `smrt` will automatically return a `Not Acceptable` error.
+`smrt` provide basic error handling for basic API functionality.
+
+#### Method Not Allowed (400)
+Thrown automatically if endpoint called with correct `Content-Type`, but `json` is invalid or does not conform to schema.
+
 #### Method Not Allowed (405)
 If a endpoint is called that does not exist, `smrt` will automatically return a `Method Not Allowed` error. 
 
@@ -105,10 +111,18 @@ Ok, hear me out: `smrt` is created for an API implementation rather than a class
 Example:
 - `GET /resorce/1337`, resource is spelled incorrectly, no such method exist (i.e. call should return `Method Not Allowed`)
 - `GET /resource/1337`, resource with ID 1337 does not exit (i.e. call should return `Not Found`)
-#### Bad Gateway (502)
-If `smrt` remote call using `request` get `Internal Server Error`, a `Bad Gateway` exception will be raised.
+
+#### Not Acceptable (406)
+If a endpoint is called, but with wrong (or missing) `Accept` header, `smrt` will automatically return a `Not Acceptable` error.
+
+#### Unsupported Media Type (Code 415)
+If a endpoint is called, but with wrong (or missing) `Content-Type`, `smrt` will automatically return a `Unsupported Media Type` error.
+
 #### Internal Server Error (500)
 If a function raise any uncaught exception, `smrt` will return a `Internal Server Error`.
+
+#### Bad Gateway (502)
+If `smrt` remote call using `request` get `Internal Server Error`, a `Bad Gateway` exception will be raised.
 
 ### Routing with Content-Type and Accept
 with `@smrt` decorator you can route requests to specific functions. See `Flask-Negotiate` documentation how to use this.
@@ -160,18 +174,31 @@ Function should return a dictionary containing name, status and version.
 
 Example:
 ```json
-{
-  "name": "MyHelloWorldApplication",
-  "status": "OK",
-  "version": "1.0.3"
-}
+def status(self):
+  {
+    "name": "MyHelloWorldApplication",
+    "status": "OK",
+    "version": "1.0.3"
+  }
 ```
 ### application_name (@staticmethod)
 Function should return a string containing application name.
 
 Example:
 ```python
-"MyHelloWorldApplication"
+@staticmethod
+def application_name():
+  return "MyHelloWorldApplication"
+```
+
+### version (@staticmethod)
+Function should return a string representation of application version.
+
+Example:
+```python
+@staticmethod
+def version():
+  return "1.0.3"
 ```
 
 ## Limitations
