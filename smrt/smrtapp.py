@@ -18,7 +18,7 @@ log = loggr.getLogger('smrt')
 class SMRTApp:
     """SMRT Application interface class.
 
-    Application that is registered with SMRT needs to extend `SMRTApp` interface.
+    Application that is registered with SMRT needs to extend ``SMRTApp`` interface.
     """
 
     config = None
@@ -30,7 +30,8 @@ class SMRTApp:
 
         Will read `configuration.json` from current working directory.
 
-        :param config_schema: ``String`` json schema, optional.
+        :param config_schema: ``string`` schemas path.
+        :param schema: ``string`` schema name.
         """
         configuration_path = None
         if 'SMRT_CONFIGURATION' in os.environ:
@@ -64,7 +65,7 @@ class SMRTApp:
     def broadcast(self, message):
         """Broadcast message to local broadcast address.
 
-        :param message: content to be broadcasted.
+        :param message: ``string`` content to be broadcasted.
         """
         if self.broadcaster is None:
             self.broadcaster = Broadcaster()
@@ -74,7 +75,7 @@ class SMRTApp:
     def listen(self, callback):
         """Register callback function for received broadcasts.
 
-        :param callback: function callback on received broadcast.
+        :param callback: ``function`` callback on received broadcast.
         """
         if self.listener is None:
             self.listener = Listener(callback)
@@ -84,14 +85,22 @@ class SMRTApp:
     def status(self):
         """Return application status object.
 
-        :returns: status object.
+        :returns: ``dict`` status object.
         """
-        raise NotImplementedError('Application is missing status implementation')
+        raise NotImplementedError('Application is missing smrtapp status implementation')
 
     @staticmethod
     def application_name():
         """Return application name.
 
-        :returns: application name as string.
+        :returns: ``string`` application name.
         """
-        raise NotImplementedError('Application is missing application_name implementation')
+        raise NotImplementedError('Application is missing smrtapp application_name implementation')
+
+    @staticmethod
+    def version():
+        """Return application version.
+
+        :returns: ``string`` application version.
+        """
+        raise NotImplementedError('Application is missing smrtapp version implementation')
