@@ -336,6 +336,33 @@ def handler_bad_request(error):
                             bad=True)
 
 
+class ResouceNotFound(Exception):
+    """Wrapper class around exception to raise ``NotFound`` errors.
+
+    This class should be used by applications implementing ``smrt``.
+    """
+
+    def __init__(self, message, *args, **kwargs):
+        """Create and initialize ``ResouceNotFound`` exception."""
+        Exception.__init__(self, args, kwargs)
+        self.message = message if message is not None else 'Resource does not exist.'
+
+
+@app.errorhandler(ResouceNotFound)
+def handler_resource_not_found(error):
+    """Catches Not Found errors.
+
+    This is typically when resouce is requested that does not exist.
+
+    :returns: Not Found error with code 404
+    """
+    log.debug(error, exc_info=True)
+    return app.create_error(404,
+                            'NotFound',
+                            error.message,
+                            bad=True)
+
+
 @app.errorhandler(MethodNotAllowed)
 @app.errorhandler(404)
 def handler_not_found(error):
