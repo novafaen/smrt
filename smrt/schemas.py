@@ -1,14 +1,14 @@
 """Convenience methods for handling schemas."""
 
-import glob
 import json
 import logging as loggr  # name to avoid using default logger for logging.
 import os
 
 from jsonschema import validate, Draft6Validator, ValidationError, SchemaError
 
-
 log = loggr.getLogger('smrt')
+
+_cache = {}
 
 
 def _read_schema(schema_file):
@@ -49,14 +49,20 @@ def read_schema(schema_name, path=None):
     3. current working directory.
     4. on smrt.novafaen.se
 
+    Schemas are cached in memory.
+
     :param schema_name: ``String`` schema name
     :param path: ``String`` path to schemas
     :returns: ``String`` schema if found, ``None`` if not found
     """
+    if schema_name in _cache:
+        return _cache[schema_name]
+
     # 1) in path
     if path is not None:
         schema = _exist_and_read(path, schema_name)
         if schema is not None:
+            _cache[schema_name] = schema
             return schema
 
     # 2) in smrt module
@@ -64,6 +70,7 @@ def read_schema(schema_name, path=None):
 
     schema = _exist_and_read(schema_path, schema_name)
     if schema is not None:
+        _cache[schema_name] = schema
         return schema
 
     # 3) in current working directory
@@ -71,6 +78,7 @@ def read_schema(schema_name, path=None):
 
     schema = _exist_and_read(schema_path, schema_name)
     if schema is not None:
+        _cache[schema_name] = schema
         return schema
 
     # 3.5) go down in current working directory
@@ -86,6 +94,7 @@ def read_schema(schema_name, path=None):
     for directory in directories:
         schema = _exist_and_read(directory, schema_name)
         if schema is not None:
+            _cache[schema_name] = schema
             return schema
 
     # 4) online on smrt.novafaen.se
