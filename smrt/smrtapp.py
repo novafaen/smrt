@@ -33,22 +33,10 @@ class SMRTApp:
         :param config_schema: ``string`` schemas path.
         :param schema: ``string`` schema name.
         """
-        configuration_path = None
-        if 'SMRT_CONFIGURATION' in os.environ:
-            configuration_path = os.environ['SMRT_CONFIGURATION']
-            log.info('%s, environent variable SMRT_CONFIGURATION set to "%s"', self.application_name(), configuration_path)
+        config = self._read_configuration()
 
-            if not os.path.isfile(configuration_path):
-                log.warning('%s, configuration file "%s" does not exist!', self.application_name(), configuration_path)
-                return  # exit on no configuration
-
-        try:
-            fh = open(configuration_path, 'rb')
-            config = loads(fh.read())
-            fh.close()
-        except (IOError, ValidationError) as err:
-            log.error('%s, could not read configuration file "%s", reason: %s', self.application_name(), configuration_path, err)
-            raise RuntimeError('Could not open configuration file, reason: %s', err)
+        if config is None:
+            return  # do not validate schema if no configuration exist
 
         # validate json schema if given
         if schema is not None:
@@ -61,6 +49,28 @@ class SMRTApp:
 
         log.info('%s, configuration loaded and verified', self.application_name())
         self._config = config
+
+    def _read_configuration(self):
+        if 'SMRT_CONFIGURATION' not in os.environ:
+            log.info('No configuration given, make sure SMRT_CONFIGURATION environment variable is set')
+            return None
+
+        configuration_path = os.environ['SMRT_CONFIGURATION']
+        log.info('%s, environent variable SMRT_CONFIGURATION set to "%s"', self.application_name(), configuration_path)
+
+        if not os.path.isfile(configuration_path):
+            log.warning('%s, configuration file "%s" does not exist!', self.application_name(), configuration_path)
+            return None
+
+        try:
+            fh = open(configuration_path, 'rb')
+            config = loads(fh.read())
+            fh.close()
+        except (IOError, ValidationError) as err:
+            log.error('%s, could not read configuration file "%s", reason: %s', self.application_name(), configuration_path, err)
+            raise RuntimeError('Could not open configuration file, reason: %s', err)
+
+        return config
 
     def broadcast(self, message):
         """Broadcast message to local broadcast address.

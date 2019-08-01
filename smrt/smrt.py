@@ -238,8 +238,6 @@ def get_status():
 
 
 @smrt('/test/error',
-      produces='application/se.novafaen.smrt.test_accept.v1+json',
-      consumes='application/se.novafaen.smrt.test_content_type.v1+json',
       methods=['GET', 'PUT'])
 def get_put_error():
     """Produce Internal Server error, for testing purposes.
@@ -295,13 +293,15 @@ def handler_not_acceptable(error):
     :returns: Not Acceptable error with code 406.
     """
     log.debug(error, exc_info=True)
-    accept_type = ''
+
     if 'Accept' in request.headers and request.headers['Accept'] != '*/*':
-        accept_type = request.headers['Accept']
+        message = 'Accept type \'{}\' is not served by endpoint.'.format(request.headers['Accept'])
+    else:
+        message = 'Missing Accept header.'
 
     return app.create_error(406,
                             'Not Acceptable',
-                            'Accept type \'%s\' is not served by endpoint.' % accept_type,
+                            message,
                             bad=True)
 
 
@@ -309,16 +309,18 @@ def handler_not_acceptable(error):
 def handler_unsupported_type(error):
     """Catches Unsupported Media Type errors.
 
-    :retuens: Unsupported Media Type error with code 415.
+    :returns: Unsupported Media Type error with code 415.
     """
     log.debug(error, exc_info=True)
-    content_type = ''
+
     if 'Content-Type' in request.headers:
-        content_type = request.headers['Content-Type']
+        message = 'Content type \'{}\' cannot be handled by endpoint.'.format(request.headers['Content-Type'])
+    else:
+        message = 'Missing Content-Type header.'
 
     return app.create_error(415,
                             'Unsupported Media Type',
-                            'Content type \'%s\' cannot be handled by endpoint.' % content_type,
+                            message,
                             bad=True)
 
 
