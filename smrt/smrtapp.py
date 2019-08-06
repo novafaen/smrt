@@ -6,6 +6,8 @@ Applications that want to use SMRT interface must extend ``SMRTApp`` class.
 from json import loads
 import logging as loggr
 import os
+from pathlib import Path, WindowsPath
+from sys import platform
 
 from jsonschema import validate as validate_json, ValidationError
 
@@ -55,15 +57,18 @@ class SMRTApp:
             log.info('No configuration given, make sure SMRT_CONFIGURATION environment variable is set')
             return None
 
-        configuration_path = os.environ['SMRT_CONFIGURATION']
+        configuration_path = Path(os.environ['SMRT_CONFIGURATION'])
         log.info('%s, environent variable SMRT_CONFIGURATION set to "%s"', self.application_name(), configuration_path)
 
-        if not os.path.isfile(configuration_path):
-            log.warning('%s, configuration file "%s" does not exist!', self.application_name(), configuration_path)
-            return None
+        # running into some strange behavior with cygwin and Windows
+        #  for some reason is_file and exists functions fails if windows path (i.e. C:\...)
+        #  and open fails if path is posix path (i.e. /home/kristoffer/...)
+        #  for that reason, skip file check for windows paths.
+        if platform != 'win32' and configuration_path.exists() and configuration_path.is_file():
+            raise RuntimeError('configuration file "{}" does not exist!'.format(configuration_path))
 
         try:
-            fh = open(configuration_path, 'rb')
+            fh = configuration_path.open()
             config = loads(fh.read())
             fh.close()
         except (IOError, ValidationError) as err:
