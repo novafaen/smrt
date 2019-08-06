@@ -349,6 +349,14 @@ class ResouceNotFound(Exception):
         Exception.__init__(self, args, kwargs)
         self.message = message if message is not None else 'Resource does not exist.'
 
+    def __str__(self):
+        """See python documentation."""
+        return self.message
+
+    def __repr__(self):
+        """See python documentation."""
+        return '<ResouceNotFound message="%s">'.format(self.message)
+
 
 @app.errorhandler(ResouceNotFound)
 def handler_resource_not_found(error):
@@ -358,10 +366,10 @@ def handler_resource_not_found(error):
 
     :returns: Not Found error with code 404
     """
-    log.debug(error, exc_info=True)
+    log.debug(error.message)  # , exc_info=True)
     return app.create_error(404,
                             'NotFound',
-                            error.message,
+                            str(error),
                             bad=True)
 
 
