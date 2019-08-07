@@ -60,12 +60,12 @@ class SMRTApp:
         configuration_path = Path(os.environ['SMRT_CONFIGURATION'])
         log.info('%s, environent variable SMRT_CONFIGURATION set to "%s"', self.application_name(), configuration_path)
 
-        # running into some strange behavior with cygwin and Windows
-        #  for some reason is_file and exists functions fails if windows path (i.e. C:\...)
-        #  and open fails if path is posix path (i.e. /home/kristoffer/...)
-        #  for that reason, skip file check for windows paths.
-        if platform != 'win32' and configuration_path.exists() and configuration_path.is_file():
-            raise RuntimeError('configuration file "{}" does not exist!'.format(configuration_path))
+        # running into some strange behavior with pathlib.exists and is_file.
+        #  for some reason both methods return false for files that exist.
+        #  same behavior on cygwin+windows (both windows and posix paths),
+        #  and also same behavior on rasbian.
+        # if configuration_path.exists() and configuration_path.is_file():
+        #    raise RuntimeError('configuration file "{}" does not exist!'.format(configuration_path))
 
         try:
             fh = configuration_path.open()
