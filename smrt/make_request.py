@@ -36,7 +36,6 @@ def make_request(method, url, headers=None, timeout=30, body=None):
     if response.status_code == 500:
         raise BadGateway(response.text)
 
-    print(response.text)
     return response
 
 
