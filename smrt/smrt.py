@@ -15,6 +15,7 @@ from json.decoder import JSONDecodeError
 import logging as loggr
 import time
 from functools import wraps
+from os import environ
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
@@ -24,16 +25,46 @@ from .smrtapp import SMRTApp
 from .make_request import GatewayTimeout
 from .schemas import read_schema, validate_json
 
+import sys
+
+
+def _debug(msg):
+    print(msg, file=sys.stderr)
+
+"""
 loggr.basicConfig(
     format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     level=loggr.DEBUG
 )
+"""
+_debug('handlers: to remove')
+for handler in loggr.root.handlers[:]:
+    loggr.root.removeHandler(handler)
+_debug('handlers: removed')
 
+_debug('smrt_log: to check')
+filename = None
+if 'SMRT_LOG' in environ:
+    filename = environ['SMRT_LOG']
+_debug('smrt_log: ' + filename if filename is not None else 'NOT_SET')
+
+_debug('basic_config: to set')
+loggr.basicConfig(
+    filename=filename,  # None if environment not set, defaults to stdout
+    format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    level=loggr.DEBUG
+)
+
+_debug('basic_config: set!')
+
+# "disable" logging from third party libraries
 loggr.getLogger('werkzeug').setLevel(loggr.CRITICAL)
 loggr.getLogger('urllib3').setLevel(loggr.CRITICAL)
 
 log = loggr.getLogger('smrt')
+_debug('ready to start :)')
 
 
 class _SMRT(Flask):
@@ -163,7 +194,7 @@ def smrt(route, **kwargs):
             result = fn(*wrapper_args, **wrapper_kwargs)
 
             end = int(round(time.time() * 1000))  # stop timer
-            log.debug('%s executed in %s ms', route, end - start)
+            log.debug('%s executed in %s ms', request.path, end - start)
 
             app.increase_successful()
 

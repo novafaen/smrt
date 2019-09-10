@@ -86,8 +86,6 @@ def read_schema(schema_name, path=None):
     for root, dirs, files in os.walk(os.getcwd()):
         if len(dirs) == 0:
             directories.append(root)
-        # for subdir in dirs:
-        #    directories.append(os.path.join(root, subdir))
 
     log.debug('found %i subdirectories in working dir', len(directories))
 
