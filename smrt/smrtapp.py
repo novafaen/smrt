@@ -4,17 +4,14 @@ Applications that want to use SMRT interface must extend ``SMRTApp`` class.
 """
 
 from json import loads
-import logging as loggr
 import os
-from pathlib import Path, WindowsPath
-from sys import platform
 
 from jsonschema import validate as validate_json, ValidationError
 
 from .broadcast import Broadcaster, Listener
 from .schemas import read_schema
 
-log = loggr.getLogger('smrt')
+from smrt import log
 
 
 class SMRTApp:
