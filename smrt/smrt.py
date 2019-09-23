@@ -13,9 +13,9 @@ SMRT will give the application:
 
 from json.decoder import JSONDecodeError
 import logging as loggr
+from os import environ
 import time
 from functools import wraps
-from os import environ
 
 from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
