@@ -6,6 +6,7 @@ Applications that want to use SMRT interface must extend ``SMRTApp`` class.
 import logging as loggr
 from json import loads
 import os
+from pathlib import Path
 
 from jsonschema import validate as validate_json, ValidationError
 
