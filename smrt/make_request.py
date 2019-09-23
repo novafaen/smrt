@@ -3,15 +3,14 @@
 Handles errors and re-throw in a `smrt` way.
 """
 
-from json import dumps as jsonify
 import logging as loggr
+from json import dumps as jsonify
 
 import requests
 from requests.exceptions import MissingSchema, ConnectionError
 from werkzeug.exceptions import GatewayTimeout, InternalServerError, BadGateway
 
 log = loggr.getLogger('smrt')
-log.setLevel(loggr.DEBUG)
 
 
 def make_request(method, url, headers=None, timeout=30, body=None):
@@ -28,6 +27,7 @@ def make_request(method, url, headers=None, timeout=30, body=None):
             body = jsonify(body)  # cast to string if dictionary
         response = requests.request(method, url, headers=headers, timeout=timeout, data=body)
     except (MissingSchema, ConnectionError, InternalServerError) as err:
+        log.warning('unexpected issue when connecting to %s: %s', url, err)
         if isinstance(err, MissingSchema):
             raise RuntimeError('invalid uri for rest request: %s (origin: %s)' % (method, err))
         elif isinstance(err, ConnectionError):

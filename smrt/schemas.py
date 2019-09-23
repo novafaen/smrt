@@ -1,7 +1,7 @@
 """Convenience methods for handling schemas."""
 
+import logging as loggr
 import json
-import logging as loggr  # name to avoid using default logger for logging.
 import os
 
 from jsonschema import validate, Draft6Validator, ValidationError, SchemaError

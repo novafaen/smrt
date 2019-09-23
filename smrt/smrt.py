@@ -25,46 +25,27 @@ from .smrtapp import SMRTApp
 from .make_request import GatewayTimeout
 from .schemas import read_schema, validate_json
 
-import sys
+log = loggr.getLogger('smrt')
+log.setLevel(loggr.DEBUG)
 
+formatter = loggr.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s')
 
-def _debug(msg):
-    print(msg, file=sys.stderr)
+sh = loggr.StreamHandler()
+sh.setLevel(loggr.DEBUG)
+sh.setFormatter(formatter)
+log.addHandler(sh)
 
-"""
-loggr.basicConfig(
-    format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    level=loggr.DEBUG
-)
-"""
-_debug('handlers: to remove')
-for handler in loggr.root.handlers[:]:
-    loggr.root.removeHandler(handler)
-_debug('handlers: removed')
-
-_debug('smrt_log: to check')
-filename = None
-if 'SMRT_LOG' in environ:
-    filename = environ['SMRT_LOG']
-_debug('smrt_log: ' + filename if filename is not None else 'NOT_SET')
-
-_debug('basic_config: to set')
-loggr.basicConfig(
-    filename=filename,  # None if environment not set, defaults to stdout
-    format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    level=loggr.DEBUG
-)
-
-_debug('basic_config: set!')
+logfile = None if 'SMRT_LOG' not in environ else environ['SMRT_LOG']
+if logfile is not None:
+    log.info('logging to logfile=%s', logfile)
+    fh = loggr.FileHandler(logfile)
+    fh.setLevel(loggr.DEBUG)
+    fh.setFormatter(formatter)
+    log.addHandler(fh)
 
 # "disable" logging from third party libraries
 loggr.getLogger('werkzeug').setLevel(loggr.CRITICAL)
 loggr.getLogger('urllib3').setLevel(loggr.CRITICAL)
-
-log = loggr.getLogger('smrt')
-_debug('ready to start :)')
 
 
 class _SMRT(Flask):

@@ -3,11 +3,9 @@
 Applications that want to use SMRT interface must extend ``SMRTApp`` class.
 """
 
-from json import loads
 import logging as loggr
+from json import loads
 import os
-from pathlib import Path, WindowsPath
-from sys import platform
 
 from jsonschema import validate as validate_json, ValidationError
 
