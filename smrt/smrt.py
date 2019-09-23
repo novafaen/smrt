@@ -28,7 +28,7 @@ from .schemas import read_schema, validate_json
 log = loggr.getLogger('smrt')
 log.setLevel(loggr.DEBUG)
 
-formatter = loggr.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s')
+formatter = loggr.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
 
 sh = loggr.StreamHandler()
 sh.setLevel(loggr.DEBUG)
