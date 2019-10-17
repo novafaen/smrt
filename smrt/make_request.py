@@ -3,8 +3,11 @@
 Handles errors and re-throw in a `smrt` way.
 """
 
+from flask import has_request_context, g
+
 import logging as loggr
 from json import dumps as jsonify
+from uuid import uuid4
 
 import requests
 from requests.exceptions import MissingSchema, ConnectionError
@@ -21,6 +24,13 @@ def make_request(method, url, headers=None, timeout=30, body=None):
     method = method.upper()
     if method not in ['GET', 'POST', 'PUT', 'DELETE']:
         raise RuntimeError('unsupported rest method: %s' % method)
+
+    if headers is None:
+        headers = {}
+
+    # not prettiest solution
+    headers['X-Request-Id'] = g.request_id if has_request_context() else str(uuid4())
+    log.debug('[%s] %s %s', headers['X-Request-Id'], method, url)
 
     try:
         if isinstance(body, dict):
