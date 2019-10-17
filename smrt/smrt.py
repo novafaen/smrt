@@ -11,13 +11,14 @@ SMRT will give the application:
  - Basic configuration file reading.
 """
 
+from functools import wraps
 from json.decoder import JSONDecodeError
 import logging as loggr
 from os import environ
 import time
-from functools import wraps
+from uuid import uuid4
 
-from flask import Flask, request, make_response, jsonify
+from flask import Flask, request, make_response, jsonify, g
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError, BadRequest
 
@@ -172,10 +173,17 @@ def smrt(route, **kwargs):
         def wrapper(*wrapper_args, **wrapper_kwargs):
             start = int(round(time.time() * 1000))  # start timer
 
+            if 'X-Request-Id' not in request.headers:
+                request_id = str(uuid4())
+                log.debug('creating request id "%s" for call %s', request_id, request.full_path)
+                g.request_id = request_id
+            else:
+                request_id = request.headers['X-Request-Id']
+
             result = fn(*wrapper_args, **wrapper_kwargs)
 
             end = int(round(time.time() * 1000))  # stop timer
-            log.debug('%s executed in %s ms', request.path, end - start)
+            log.debug('[%s] %s executed in %s ms', request_id, request.full_path, end - start)
 
             app.increase_successful()
 
@@ -183,6 +191,14 @@ def smrt(route, **kwargs):
 
         return wrapper
     return decorated
+
+
+def request_id():
+    """Get current request id.
+
+    :returns: ``String`` request id in form of uuid4.
+    """
+    return g.request_id
 
 
 def _check_content_type(schema_name, content_bytes):
