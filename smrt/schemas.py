@@ -66,7 +66,8 @@ def read_schema(schema_name, path=None):
             return schema
 
     # 2) in smrt module
-    schema_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'schemas')
+    schema_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                               'schemas')
 
     schema = _exist_and_read(schema_path, schema_name)
     if schema is not None:

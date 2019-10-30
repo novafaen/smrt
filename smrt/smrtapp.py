@@ -19,7 +19,8 @@ log = loggr.getLogger('smrt')
 class SMRTApp:
     """SMRT Application interface class.
 
-    Application that is registered with SMRT needs to extend ``SMRTApp`` interface.
+    Application that is registered with SMRT needs to extend
+    ``SMRTApp`` interface.
     """
 
     config = None
@@ -46,33 +47,31 @@ class SMRTApp:
             if schema is not None:
                 validate_json(config, schema)
         else:
-            log.warning('%s, application is missing schema for configuration, please fix!', self.application_name())
+            log.warning('%s, application is missing schema for configuration',
+                        self.application_name())
 
-        log.info('%s, configuration loaded and verified', self.application_name())
+        log.info('%s, configuration verified and loaded',
+                 self.application_name())
         self._config = config
 
     def _read_configuration(self):
         if 'SMRT_CONFIGURATION' not in os.environ:
-            log.info('No configuration given, make sure SMRT_CONFIGURATION environment variable is set')
+            log.info('No configuration given, make sure '
+                     'SMRT_CONFIGURATION environment variable is set')
             return None
 
         configuration_path = Path(os.environ['SMRT_CONFIGURATION'])
-        log.info('%s, environent variable SMRT_CONFIGURATION set to "%s"', self.application_name(), configuration_path)
-
-        # running into some strange behavior with pathlib.exists and is_file.
-        #  for some reason both methods return false for files that exist.
-        #  same behavior on cygwin+windows (both windows and posix paths),
-        #  and also same behavior on rasbian.
-        # if configuration_path.exists() and configuration_path.is_file():
-        #    raise RuntimeError('configuration file "{}" does not exist!'.format(configuration_path))
+        log.info('%s, environent variable SMRT_CONFIGURATION set to "%s"',
+                 self.application_name(), configuration_path)
 
         try:
             fh = configuration_path.open()
             config = loads(fh.read())
             fh.close()
-        except (IOError, ValidationError) as err:
-            log.error('%s, could not read configuration file "%s", reason: %s', self.application_name(), configuration_path, err)
-            raise RuntimeError('Could not open configuration file, reason: %s', err)
+        except (IOError, ValidationError) as err:  # noqa: F841 f8 is wrong
+            raise RuntimeError(
+                f'Could not open configuration file "{configuration_path}", '
+                'reason: {err}')
 
         return config
 
@@ -101,7 +100,8 @@ class SMRTApp:
 
         :returns: ``dict`` status object.
         """
-        raise NotImplementedError('Application is missing smrtapp status implementation')
+        raise NotImplementedError(
+            'Application is missing smrtapp status implementation')
 
     @staticmethod
     def application_name():
@@ -109,7 +109,8 @@ class SMRTApp:
 
         :returns: ``string`` application name.
         """
-        raise NotImplementedError('Application is missing smrtapp application_name implementation')
+        raise NotImplementedError(
+            'Application is missing smrtapp application_name implementation')
 
     @staticmethod
     def version():
@@ -117,4 +118,5 @@ class SMRTApp:
 
         :returns: ``string`` application version.
         """
-        raise NotImplementedError('Application is missing smrtapp version implementation')
+        raise NotImplementedError(
+            'Application is missing smrtapp version implementation')

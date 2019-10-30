@@ -13,7 +13,8 @@ Exports:
 - `jsonify` Flask jsonify function.
 """
 
-from .smrt import app, smrt, request, make_response, jsonify, ResouceNotFound, log
+from .smrt import app, smrt, request, make_response, jsonify, log, \
+                  ResouceNotFound
 from .smrtapp import SMRTApp
 from .schemas import read_schema, validate_json
 from .make_request import make_request

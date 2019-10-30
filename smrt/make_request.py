@@ -35,13 +35,16 @@ def make_request(method, url, headers=None, timeout=30, body=None):
     try:
         if isinstance(body, dict):
             body = jsonify(body)  # cast to string if dictionary
-        response = requests.request(method, url, headers=headers, timeout=timeout, data=body)
+        response = requests.request(
+            method, url, headers=headers, timeout=timeout, data=body)
     except (MissingSchema, ConnectionError, InternalServerError) as err:
         log.warning('unexpected issue when connecting to %s: %s', url, err)
         if isinstance(err, MissingSchema):
-            raise RuntimeError('invalid uri for rest request: %s (origin: %s)' % (method, err))
+            raise RuntimeError(
+                f'invalid uri for rest request: {method} (origin: {err})')
         elif isinstance(err, ConnectionError):
-            raise GatewayTimeout('received no response from %s (origin: %s)' % (url, err))
+            raise GatewayTimeout(
+                f'received no response from "{url}" (origin: {err})')
 
     if response.status_code == 500:
         raise BadGateway(response.text)
@@ -50,20 +53,24 @@ def make_request(method, url, headers=None, timeout=30, body=None):
 
 
 def get(url, headers=None, timeout=30, body=None):
-    """Wrap make_request with method `GET`, see `make_request` documentation for usage."""
-    return make_request('GET', url, headers=headers, timeout=timeout, body=body)
+    """Wrap make_request as `GET`, see `make_request` documentation."""
+    return make_request('GET',
+                        url, headers=headers, timeout=timeout, body=body)
 
 
 def put(url, headers=None, timeout=30, body=None):
-    """Wrap make_request with method `PUT`, see `make_request` documentation for usage."""
-    return make_request('PUT', url, headers=headers, timeout=timeout, body=body)
+    """Wrap make_request as `PUT`, see `make_request` documentation."""
+    return make_request('PUT',
+                        url, headers=headers, timeout=timeout, body=body)
 
 
 def post(url, headers=None, timeout=30, body=None):
-    """Wrap make_request with method `POST`, see `make_request` documentation for usage."""
-    return make_request('POST', url, headers=headers, timeout=timeout, body=body)
+    """Wrap make_request as `POST`, see `make_request` documentation."""
+    return make_request('POST',
+                        url, headers=headers, timeout=timeout, body=body)
 
 
 def delete(url, headers=None, timeout=30, body=None):
-    """Wrap make_request with method `DELETE`, see `make_request` documentation for usage."""
-    return make_request('DELETE', url, headers=headers, timeout=timeout, body=body)
+    """Wrap make_request as `DELETE`, see `make_request` documentation."""
+    return make_request('DELETE',
+                        url, headers=headers, timeout=timeout, body=body)

@@ -1,6 +1,7 @@
 """Local area network broadcast and listener.
 
-Can be used to broadcast and listen for component lifecycles or communicate configuration.
+Can be used to broadcast and listen for component lifecycles or
+communicate configuration.
 """
 
 import logging as loggr
@@ -34,7 +35,8 @@ class Broadcaster:
         if not isinstance(message, str):
             message = str(message)
 
-        log.debug('broadcasting on port %s, message: "%s"', self._port, message)
+        log.debug('broadcasting on port %s, message: "%s"',
+                  self._port, message)
 
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -81,7 +83,8 @@ class Listener(Thread):
         while self._execute:
             message = sock.recvfrom(1024)  # message cannot be bigger than this!
             data, (sender, port) = message
-            log.debug('received broadcast message "%s", from %s:%i', data, sender, port)
+            log.debug('received broadcast message "%s", from %s:%i',
+                      data, sender, port)
 
             self._callback(data)
 

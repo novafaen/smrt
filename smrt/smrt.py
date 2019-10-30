@@ -1,8 +1,9 @@
-"""SMRT is a convenience framework build around flask.
+"""SMRT is a convenience framework build around Flask.
 
-SMRT, pronounced SMART, is a convenience framework around Flask and Flask-Negotiate.
-Applications, that use SMRT should extent `SMRTApp`. This app must be registered
-with SMRT using `app.register_application` function.
+SMRT, pronounced SMART, is a convenience framework around Flask and
+Flask-Negotiate. Applications, that use SMRT should extent ``SMRTApp``.
+Applications must be registered with SMRT using ``app.register_application``
+function.
 
 SMRT will give the application:
  - Basig logging.
@@ -18,9 +19,17 @@ from os import environ
 import time
 from uuid import uuid4
 
+<<<<<<< HEAD
 from flask import Flask, request, make_response, jsonify, g
 from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError, BadRequest
+=======
+from flask import Flask, request, make_response, jsonify
+from flask_negotiate import consumes, produces, \
+                            NotAcceptable, UnsupportedMediaType
+from werkzeug.exceptions import MethodNotAllowed, InternalServerError, \
+                                BadRequest
+>>>>>>> Flake8 warning fixes
 
 from .smrtapp import SMRTApp
 from .make_request import GatewayTimeout
@@ -72,7 +81,9 @@ class _SMRT(Flask):
         :raise NotImplementedError: If application does not extend `SMRTApp`.
         """
         if not isinstance(app, SMRTApp):
-            raise NotImplementedError('Client registration failed, client does not implement SMRTApp interface')
+            raise NotImplementedError(
+                'Application registration failed, the client does not '
+                'implement SMRTApp interface')
 
         log.debug('application registered: %s', app.application_name())
         self._app = app
@@ -81,7 +92,8 @@ class _SMRT(Flask):
         """Increase successful amount."""
         self._requests_successful += 1
 
-    def create_error(self, code, error_type, description, warning=False, error=False, bad=False):
+    def create_error(self, code, error_type, description,
+                     warning=False, error=False, bad=False):
         """Create error response.
 
         :param code: HTML Error code.
@@ -105,7 +117,8 @@ class _SMRT(Flask):
             'description': description
         }
         response = make_response(jsonify(body), code)
-        response.headers['Content-Type'] = 'application/se.novafaen.smrt.error.v1+json'
+        response.headers['Content-Type'] = \
+            'application/se.novafaen.smrt.error.v1+json'
         return response
 
     def status(self):
@@ -114,30 +127,34 @@ class _SMRT(Flask):
         Get the status from last time launched.
         :returns: status object
         """
-        now = int(time.time())
+        now = int(time.time())  # force integer, no need to have better
         body = {
             'smrt': {
                 'smrt_version': '0.0.1',
                 'app_loaded': self._app is not None,
                 'uptime': now - self._started
             },
-            'server_time': now,  # force integer, no need to have better resolution
+            'server_time': now,
             'status': {
                 'amount_successful': self._requests_successful,
                 'amount_warning': self._requests_warning,
                 'amount_error': self._requests_error,
                 'amount_bad': self._requests_bad,
-                'amount_total': self._requests_successful + self._requests_warning + self._requests_error + self._requests_bad
+                'amount_total': (self._requests_successful
+                                 + self._requests_warning
+                                 + self._requests_error
+                                 + self._requests_bad)
             }
         }
 
         if self._app is not None:
             app_status = self._app.status()
-            if isinstance(app_status, dict) and len(app_status) == 3 and \
-                    'name' in app_status and 'status' in app_status and 'version' in app_status:
+            if isinstance(app_status, dict) and len(app_status) == 3 \
+                    and 'name' in app_status and 'status' in app_status \
+                    and 'version' in app_status:
                 body['application'] = self._app.status()
             else:
-                raise RuntimeError('app status have invalid format')
+                raise RuntimeError('Application status have invalid format')
 
         return body
 
@@ -209,7 +226,8 @@ def _check_content_type(schema_name, content_bytes):
         log.debug('could not parse content: %s', err)
         raise UnsupportedMediaType('could not verify schema')
 
-    schema = read_schema(schema_name.replace('application/', '').replace('+json', '.json'))
+    schema = read_schema(
+        schema_name.replace('application/', '').replace('+json', '.json'))
     if schema is None:
         raise RuntimeError('could not find schema')
     if not validate_json(content, schema):
@@ -322,8 +340,12 @@ def handler_not_acceptable(error):
     """
     log.debug(error, exc_info=True)
 
-    if 'Accept' in request.headers and request.headers['Accept'] != '*/*':
-        message = 'Accept type \'{}\' is not served by endpoint.'.format(request.headers['Accept'])
+    accept_header = \
+        request.headers['Accept'] if 'Accept' in request.headers else None
+
+    if accept_header is not None:
+        message = f'Accept type \'{accept_header}\' ' \
+                   'is not served by endpoint.'
     else:
         message = 'Missing Accept header.'
 
@@ -341,8 +363,13 @@ def handler_unsupported_type(error):
     """
     log.debug(error, exc_info=True)
 
-    if 'Content-Type' in request.headers:
-        message = 'Content type \'{}\' cannot be handled by endpoint.'.format(request.headers['Content-Type'])
+    content_header = \
+        request.headers['Content-Type'] if 'Content-Type' in request.headers \
+        else None
+
+    if content_header is not None:
+        message = f'Content type \'{content_header}\' ' \
+                   'cannot be handled by endpoint.'
     else:
         message = 'Missing Content-Type header.'
 
@@ -375,7 +402,8 @@ class ResouceNotFound(Exception):
     def __init__(self, message, *args, **kwargs):
         """Create and initialize ``ResouceNotFound`` exception."""
         Exception.__init__(self, args, kwargs)
-        self.message = message if message is not None else 'Resource does not exist.'
+        self.message = \
+            message if message is not None else 'Resource does not exist.'
 
     def __str__(self):
         """See python documentation."""
@@ -383,7 +411,7 @@ class ResouceNotFound(Exception):
 
     def __repr__(self):
         """See python documentation."""
-        return '<ResouceNotFound message="%s">'.format(self.message)
+        return f'<ResouceNotFound message="{.message}">'
 
 
 @app.errorhandler(ResouceNotFound)
@@ -404,12 +432,14 @@ def handler_resource_not_found(error):
 @app.errorhandler(MethodNotAllowed)
 @app.errorhandler(404)
 def handler_not_found(error):
-    """Catches Not Found or Method Not Allowed errors, rethrows as Method Not Allowed.
+    """Rethrows as Method Not Allowed.
+
+    Catches Not Found or Method Not Allowed errors, and rethrows.
 
     :returns: Method Not Allowed error with code 405
     """
     log.debug(error, exc_info=True)
     return app.create_error(405,
                             'Method Not Allowed',
-                            'No method \'%s\' exist.' % request.path,
+                            f'No method "{request.path}" exist.',
                             bad=True)
