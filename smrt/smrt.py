@@ -19,17 +19,11 @@ from os import environ
 import time
 from uuid import uuid4
 
-<<<<<<< HEAD
 from flask import Flask, request, make_response, jsonify, g
-from flask_negotiate import consumes, produces, NotAcceptable, UnsupportedMediaType
-from werkzeug.exceptions import MethodNotAllowed, InternalServerError, BadRequest
-=======
-from flask import Flask, request, make_response, jsonify
 from flask_negotiate import consumes, produces, \
                             NotAcceptable, UnsupportedMediaType
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError, \
                                 BadRequest
->>>>>>> Flake8 warning fixes
 
 from .smrtapp import SMRTApp
 from .make_request import GatewayTimeout
@@ -192,7 +186,8 @@ def smrt(route, **kwargs):
 
             if 'X-Request-Id' not in request.headers:
                 request_id = str(uuid4())
-                log.debug('creating request id "%s" for call %s', request_id, request.full_path)
+                log.debug('creating request id "%s" for call %s',
+                          request_id, request.full_path)
                 g.request_id = request_id
             else:
                 request_id = request.headers['X-Request-Id']
@@ -200,7 +195,8 @@ def smrt(route, **kwargs):
             result = fn(*wrapper_args, **wrapper_kwargs)
 
             end = int(round(time.time() * 1000))  # stop timer
-            log.debug('[%s] %s executed in %s ms', request_id, request.full_path, end - start)
+            log.debug('[%s] %s executed in %s ms', request_id,
+                      request.full_path, end - start)
 
             app.increase_successful()
 

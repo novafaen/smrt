@@ -29,7 +29,8 @@ def make_request(method, url, headers=None, timeout=30, body=None):
         headers = {}
 
     # not prettiest solution
-    headers['X-Request-Id'] = g.request_id if has_request_context() else str(uuid4())
+    headers['X-Request-Id'] = \
+        g.request_id if has_request_context() else str(uuid4())
     log.debug('[%s] %s %s', headers['X-Request-Id'], method, url)
 
     try:

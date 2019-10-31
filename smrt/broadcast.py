@@ -81,7 +81,7 @@ class Listener(Thread):
         self._execute = True
 
         while self._execute:
-            message = sock.recvfrom(1024)  # message cannot be bigger than this!
+            message = sock.recvfrom(1024)  # todo: bigger?
             data, (sender, port) = message
             log.debug('received broadcast message "%s", from %s:%i',
                       data, sender, port)
