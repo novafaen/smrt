@@ -236,28 +236,28 @@ def _call_types(in_type, out_type):
         if in_type is not None and out_type is None:
             @consumes(in_type)
             @wraps(fn)
-            def wrapper(*w_args, **w_kwargs):
+            def _only_consumes(*w_args, **w_kwargs):
                 _check_content_type(in_type, request)
 
                 return fn(*w_args, **w_kwargs)
-            return wrapper
+            return _only_consumes
 
         if in_type is None and out_type is not None:
             @produces(out_type)
             @wraps(fn)
-            def wrapper(*w_args, **w_kwargs):
+            def _no_types(*w_args, **w_kwargs):
                 return fn(*w_args, **w_kwargs)
-            return wrapper
+            return _no_types
 
         if in_type is not None and out_type is not None:
             @consumes(in_type)
             @produces(out_type)
             @wraps(fn)
-            def wrapper(*w_args, **w_kwargs):
+            def _both_types(*w_args, **w_kwargs):
                 _check_content_type(in_type, request)
 
                 return fn(*w_args, **w_kwargs)
-            return wrapper
+            return _both_types
 
         @wraps(fn)
         def wrapper(*w_args, **w_kwargs):
@@ -407,7 +407,7 @@ class ResouceNotFound(Exception):
 
     def __repr__(self):
         """See python documentation."""
-        return f'<ResouceNotFound message="{.message}">'
+        return f'<ResouceNotFound message="{self.message}">'
 
 
 @app.errorhandler(ResouceNotFound)

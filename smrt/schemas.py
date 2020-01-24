@@ -84,7 +84,7 @@ def read_schema(schema_name, path=None):
 
     # 3.5) go down in current working directory
     directories = []
-    for root, dirs, files in os.walk(os.getcwd()):
+    for root, dirs, _ in os.walk(os.getcwd()):
         if len(dirs) == 0:
             directories.append(root)
 
