@@ -68,7 +68,7 @@ class SMRTApp:
             fh = configuration_path.open()
             config = loads(fh.read())
             fh.close()
-        except (IOError, ValidationError) as err:  # noqa: F841 f8 is wrong
+        except (IOError, ValidationError) as err:
             raise RuntimeError(
                 f'Could not open configuration file "{configuration_path}", '
                 'reason: {err}')
