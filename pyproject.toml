@@ -9,7 +9,7 @@ homepage = "http://smrt.novafaen.se/"
 python = "^3.8"
 flask = "^1.1.1"
 flask-negotiate = "^0.1"
-werkzeug = "^0.16.0"
+werkzeug = "^2.2.3"
 requests = "^2.22.0"
 jsonschema = "^3.2.0"
 
